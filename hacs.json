@@ -1,0 +1,5 @@
+{
+  "name": "koolnova BMS RS485 Modbus",
+  "homeassistant": "2023.10.5",
+  "render_readme": true
+}
