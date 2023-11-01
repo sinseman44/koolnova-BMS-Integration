@@ -1,55 +1,85 @@
 """Constants used by the koolnova-bms component."""
 
+from homeassistant.const import CONF_ICON, CONF_NAME, CONF_TYPE
+from homeassistant.components.climate.const import (
+    HVAC_MODE_COOL,
+    HVAC_MODE_HEAT,
+    HVAC_MODE_DRY,
+    HVAC_MODE_FAN_ONLY,
+    HVAC_MODE_AUTO,
+    ClimateEntityFeature,
+    HVACMode,
+    FAN_AUTO,
+)
+
 DOMAIN = "koolnova_bms"
+DEVICES = "wf-rac-devices"
 
-NUM_ZONES = 16
+CONF_OPERATOR_ID = "operator_id"
+CONF_AIRCO_ID = "airco_id"
+ATTR_DEVICE_ID = "device_id"
+ATTR_CONNECTED_ACCOUNTS = "connected_accounts"
 
-REG_PER_ZONE = 4
-REG_ENABLED = 1
-REG_MODE = 2
-REG_TARGET_TEMP = 3
-REG_CURRENT_TEMP = 4
+ATTR_INSIDE_TEMPERATURE = "inside_temperature"
 
-REG_AIRFLOW = 65
-REG_AC_TARGET_TEMP = 69
-REG_AC_TARGET_FAN_MODE = 73
-REG_SERIAL_CONFIG = 77
-REG_SLAVE_ID = 78
-REG_EFFICIENCY = 79
-REG_SYSTEM_ENABLED = 81
-REG_SYS_KN_MODE = 82
+SENSOR_TYPE_TEMPERATURE = "temperature"
 
-FIRST_ZONE_REGISTER = REG_ENABLED
-TOTAL_ZONE_REGISTERS = NUM_ZONES * REG_PER_ZONE
-FIRST_SYS_REGISTER = REG_AIRFLOW
-TOTAL_SYS_REGISTERS = 18
+SENSOR_TYPES = {
+    ATTR_INSIDE_TEMPERATURE: {
+        CONF_NAME: "Inside Temperature",
+        CONF_ICON: "mdi:thermometer",
+        CONF_TYPE: SENSOR_TYPE_TEMPERATURE,
+    },
+}
 
-FAN_OFF = 0
-FAN_LOW = 1
-FAN_MED = 2
-FAN_HIGH = 3
-FAN_AUTO = 4
+SUPPORT_FLAGS = (
+    ClimateEntityFeature.TARGET_TEMPERATURE
+    | ClimateEntityFeature.FAN_MODE
+)
 
-MODE_AIR_COOLING = 0x01
-MODE_AIR_HEATING = 0x02
-MODE_UNDERFLOOR_HEATING = 0x04
-MODE_UNDERFLOOR_AIR_COOLING = 0x05
-MODE_UNDERFLOOR_AIR_HEATING = 0x06
+SUPPORTED_HVAC_MODES = [
+    HVACMode.OFF,
+    HVACMode.AUTO,
+    HVACMode.COOL,
+    HVACMode.DRY,
+    HVACMode.HEAT,
+    HVACMode.FAN_ONLY,
+]
 
-HOLD_MODE_UNDERFLOOR_ONLY = "underfloor"
-HOLD_MODE_FAN_ONLY = "fan"
-HOLD_MODE_UNDERFLOOR_AND_FAN = "underfloor and fan"
+HVAC_TRANSLATION = {
+    HVAC_MODE_AUTO: 0,
+    HVAC_MODE_COOL: 1,
+    HVAC_MODE_HEAT: 2,
+    HVAC_MODE_FAN_ONLY: 3,
+    HVAC_MODE_DRY: 4,
+}
 
-HVAC_MODE_OFF = "off"
-HVAC_MODE_COOL = "cool"
-HVAC_MODE_HEAT = "heat"
+FAN_MODE_1 = "1 Lowest"
+FAN_MODE_2 = "2 Low"
+FAN_MODE_3 = "3 High"
+FAN_MODE_4 = "4 Highest"
 
-ACMACHINES = 4
+FAN_MODE_TRANSLATION = {
+    FAN_AUTO: 0,
+    FAN_MODE_1: 1,
+    FAN_MODE_2: 2,
+    FAN_MODE_3: 3,
+    FAN_MODE_4: 4,
+}
 
-AC1 = 1
-AC2 = 2
-AC3 = 3
-AC4 = 4
+SUPPORTED_FAN_MODES = [
+    FAN_AUTO,
+    FAN_MODE_1,
+    FAN_MODE_2,
+    FAN_MODE_3,
+    FAN_MODE_4,
+]
 
-HA_COMPONENT_SENSOR = "sensor"
-HA_COMPONENT_CLIMATE = "climate"
+OPERATION_LIST = {
+    # HVAC_MODE_OFF: "Off",
+    HVAC_MODE_HEAT: "Heat",
+    HVAC_MODE_COOL: "Cool",
+    HVAC_MODE_AUTO: "Auto",
+    HVAC_MODE_DRY: "Dry",
+    HVAC_MODE_FAN_ONLY: "Fan",
+}

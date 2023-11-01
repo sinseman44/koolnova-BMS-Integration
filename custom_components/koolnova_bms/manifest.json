@@ -1,13 +1,15 @@
 {
   "domain": "koolnova_bms",
-  "name": "koolnova BMS Modbus",
-  "codeowners": ["@sinseman44"],
+  "name": "koolnova BMS Modbus RTU",
+  "codeowners": ["@vbenoit"],
   "config_flow": true,
   "documentation": "https://git.nas.benserv.fr/vincent/koolnova-BMS-Integration/src/branch/main/README.md",
   "iot_class": "local_polling",
   "issue_tracker": "https://git.nas.benserv.fr/vincent/koolnova-BMS-Integration/issues",
+  "integration_type": "hub",
   "requirements": [
-    "pymodbus>=3.5.0"
+    "pymodbus>=3.5.4",
+    "pyserial>=3.5"
   ],
   "version": "0.1.0"
 }
