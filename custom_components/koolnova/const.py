@@ -33,9 +33,15 @@ class ZoneState(Enum):
     STATE_OFF = 0
     STATE_ON = 1
 
+    def __int__(self):
+        return self.value
+
 class ZoneRegister(Enum):
     REGISTER_OFF = 0
     REGISTER_ON = 1
+
+    def __int__(self):
+        return self.value
 
 class ZoneFanMode(Enum):
     FAN_OFF = 0
@@ -44,12 +50,19 @@ class ZoneFanMode(Enum):
     FAN_HIGH = 3
     FAN_AUTO = 4
 
+    def __int__(self):
+        return self.value
+
 class ZoneClimMode(Enum):
-    COLD = 1 
-    HOT = 2
+    OFF = 0
+    COOL = 1 
+    HEAT = 2
     HEATING_FLOOR = 4
     REFRESHING_FLOOR = 5 
     HEATING_FLOOR_2 = 6
+
+    def __int__(self):
+        return self.value
 
 # Température de consigne = (data / 2) => delta: 15°C -> 35°C
 REG_TEMP_ORDER = 2 # 40003, 40007, 40011, etc ...
@@ -60,6 +73,15 @@ REG_TEMP_REAL = 3 # 40004, 40008, 40012, etc ...
 MAX_TEMP_ORDER = 35.0
 # Temperature minimale de consigne : 15°C
 MIN_TEMP_ORDER = 15.0
+# Pas de la temperature de consigne : 0.5°C
+STEP_TEMP_ORDER = 0.5
+
+# Temperature maximale : 50°C
+MAX_TEMP = 50.0
+# Temperature minimale : 0°C
+MIN_TEMP = 0.0
+# Pas de la temperature : 0.5°C
+STEP_TEMP = 0.5
 
 # (4 registres: 64 -> 67) Debit des machines (0: arret -> 15: debit maximum)
 REG_START_FLOW_ENGINE = 64
@@ -82,6 +104,9 @@ class FlowEngine(Enum):
     MANUAL_HIGH = 3
     AUTO = 4
 
+    def __int__(self):
+        return self.value
+
 # Communication Modbus
 REG_COMM = 76
 
@@ -98,12 +123,18 @@ class Efficiency(Enum):
     HIGH_EFF = 4
     HIGHER_EFF = 5
 
+    def __int__(self):
+        return self.value
+
 REG_CLIM_ID = 79
 REG_SYS_STATE = 80
 
 class SysState(Enum):
     SYS_STATE_OFF = 0
     SYS_STATE_ON = 1
+
+    def __int__(self):
+        return self.value
 
 REG_GLOBAL_MODE = 81
 
@@ -113,3 +144,6 @@ class GlobalMode(Enum):
     HEATING_FLOOR = 4
     REFRESHING_FLOOR = 5
     HEATING_FLOOR_2 = 6
+
+    def __int__(self):
+        return self.value

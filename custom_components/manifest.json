@@ -1,0 +1,12 @@
+{
+    "domain": "testVBE_4",
+    "name": "Test Tuto VBE 4",
+    "codeowners": ["@sinseman44"],
+    "config_flow": true,
+    "documentation": "https://github.com/sinseman44/testVBE_4",
+    "issue_tracker": "https://github.com/sinseman44/testVBE_4/issues",
+    "integration_type": "device",
+    "iot_class": "calculated",
+    "quality_scale": "silver",
+    "version": "1.0.0"
+}

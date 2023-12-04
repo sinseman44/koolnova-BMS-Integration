@@ -1,0 +1,38 @@
+{
+    "title": "testVBE_4",
+    "config": {
+        "flow_title": "test VBE 4 configuration",
+        "step": {
+            "user": {
+                "title": "Configuration Client Modbus RTU",
+                "description": "Informations de connexion sur le périphérique Koolnova",
+                "data": {
+                    "Name": "Nom de l'appareil",
+                    "Device": "Appareil de communication RS485 Modbus",
+                    "Address": "Adresse du périphérique",
+                    "Baudrate": "Vitesse modbus",
+                    "Sizebyte": "Taille des données",
+                    "Parity": "Parité",
+                    "Stopbits": "Nombre de bits de stop",
+                    "Timeout": "Timeout",
+                    "DiscoverArea": "Type de découverte de zones"
+                }
+            },
+            "areas": {
+                "title": "Configuration d'une zone",
+                "description": "Information sur la zone à configurer",
+                "data": {
+                    "Name": "Nom de la zone",
+                    "Zone_id": "Zone_id",
+                    "Other_area": "Ajouter une nouvelle zone"
+                }
+            }
+        },
+        "error": {
+            "cannot_connect": "Cannot connected to Koolnova system",
+            "area_not_registered": "Area is not registered to the Koolnova system",
+            "area_already_configured": "Area is already configured",
+            "zone_id_error": "Zone Id must an integer between 1 and 16"
+        }
+    }
+}
