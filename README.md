@@ -35,7 +35,7 @@ Modbus RTU (Remote Terminal Unit), makes use of a compact, binary representation
 * A RS485 USB dongle.
 * Enabling Modbus communication on the thermostat (INT 49)
 
-![INT49](png/koolnova-smart radio INT 49.png)
+![INT49](png/koolnova-smart_radio_INT_49.png)
 
 ## Connecting
 
