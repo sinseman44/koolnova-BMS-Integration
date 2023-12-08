@@ -37,12 +37,12 @@ class SystemStateSwitch(SwitchEntity):
     """Select component to set system state """
     _attr_has_entity_name = True
 
-    def __init__(self, 
+    def __init__(self,
                     device: Koolnova,
                 ) -> None:
         super().__init__()
         self._device = device
-        self._attr_name = f"{device.name} system state"
+        self._attr_name = f"{device.name} System State"
         self._attr_device_info = device.device_info
         self._attr_unique_id = f"{DOMAIN}-SystemState-switch"
         _LOGGER.debug("[SYS STATE] State: {}".format(bool(int(self._device.sys_state))))
@@ -62,13 +62,11 @@ class SystemStateSwitch(SwitchEntity):
 
     def _update_state(self) -> None:
         """ update system state """
-        _LOGGER.debug("[SYS STATE] _update_state")
         self._is_on = bool(int(self._device.sys_state))
 
     @Throttle(MIN_TIME_BETWEEN_UPDATES)
     async def async_update(self):
         """Retrieve latest state."""
-        _LOGGER.debug("[SYS STATE] async_update")
         self._update_state()
 
     @property

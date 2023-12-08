@@ -75,37 +75,3 @@ class DiagnosticsSensor(SensorEntity):
     def should_poll(self) -> bool:
         """ Do not poll for those entities """
         return False
-
-class TestVBEElapsedSecondEntity(SensorEntity):
-    """ La classe de l'entité TestVBE_4 """
-
-    def __init__(self, 
-                    hass: HomeAssistant, #pylint: disable=unused-argument
-                    entry_infos, #pylint: disable=unused-argument
-                ) -> None:
-        """ Class constructor """
-        self._attr_name = entry_infos.get("name")
-        self._attr_unique_id = entry_infos.get("entity_id")
-        self._attr_has_entity_name = True
-        self._attr_native_value = 36
-
-    @property
-    def icon(self) -> str | None:
-        return "mdi:timer-play"
-
-    @property
-    def device_class(self) -> SensorDeviceClass | None:
-        return SensorDeviceClass.DURATION
-    
-    @property
-    def state_class(self) -> SensorStateClass | None:
-        return SensorStateClass.MEASUREMENT
-
-    @property
-    def native_unit_of_measurement(self) -> str | None:
-        return UnitOfTime.SECONDS
-    
-    @property
-    def should_poll(self) -> bool:
-        """ Do not poll for those entities """
-        return False
