@@ -34,11 +34,11 @@ async def async_setup_entry(hass: HomeAssistant,
         # update attributes
         await device.update()
         # record each area in device
-        _LOGGER.debug("Koolnova areas: {}".format(entry.data['areas']))
+        _LOGGER.debug("Koolnova areas: {}".format(entry.data['areas']))
         for area in entry.data['areas']:
             await device.add_manual_registered_zone(name=area['Name'], 
                                                     id_zone=area['Zone_id'])
-        _LOGGER.debug("Koolnova device: {}".format(device))
+        _LOGGER.debug("Koolnova device: {}".format(device))
         hass.data[DOMAIN].append(device)
     except Exception as e:
         _LOGGER.exception("Something went wrong ... {}".format(e))
