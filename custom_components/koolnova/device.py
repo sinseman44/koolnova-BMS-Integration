@@ -128,7 +128,7 @@ class Area:
 
     def __repr__(self) -> str:
         ''' repr method '''
-        return repr('Zone(Name: {}, Id:{}, State:{}, Register:{}, Fan:{}, Clim:{}, Real Temp:{}, Order Temp:{})'.format(
+        return repr('Area(Name: {}, Id:{}, State:{}, Register:{}, Fan:{}, Clim:{}, Real Temp:{}, Order Temp:{})'.format(
                         self._name,
                         self._id, 
                         self._state,
@@ -169,7 +169,7 @@ class Koolnova:
                         id_search:int = 0,
                     ) -> (bool, int):
         """ test if area id is defined """
-        _areas_found = [idx for idx,x in enumerate(self._areas) if x.id_zone == id_search]
+        _areas_found = [idx for idx, x in enumerate(self._areas) if x.id_zone == id_search]
         _idx = 0
         if not _areas_found:
             _LOGGER.error("Area id ({}) not defined".format(id_search))
@@ -178,8 +178,8 @@ class Koolnova:
             _LOGGER.error("Multiple Area with same id ({})".format(id_search))
             return False, _idx
         else:
-            _LOGGER.debug("idx found: {}".format(_idx))
             _idx  = _areas_found[0]
+            _LOGGER.debug("idx found: {}".format(_idx))
         return True, _idx
 
     async def update(self) -> bool:
@@ -292,7 +292,7 @@ class Koolnova:
         return self._areas[zone_id - 1]
 
     async def update_area(self, zone_id:int = 0) -> bool:
-        """ update area """
+        """ update specific area from zone_id """
         ret, infos = await self._client.zone_registered(zone_id = zone_id)
         if not ret:
             _LOGGER.error("Error retreiving area ({}) values".format(zone_id))
@@ -308,6 +308,26 @@ class Koolnova:
                     self._areas[idx].order_temp = infos['order_temp']
                     break
         return ret, self._areas[zone_id - 1]
+
+    async def update_all_areas(self) -> list:
+        """ update all areas registered """
+        _ret, _vals = await self._client.areas_registered()
+        if not _ret:
+            _LOGGER.error("Error retreiving areas values")
+            return None
+        else:
+            _LOGGER.debug("areas: {}".format(_vals))
+            for k,v in _vals.items():
+                for _idx, _area in enumerate(self._areas):
+                    if k == _area.id_zone:
+                        self._areas[_idx].state = v['state']
+                        self._areas[_idx].register = v['register']
+                        self._areas[_idx].fan_mode = v['fan']
+                        self._areas[_idx].clim_mode = v['clim']
+                        self._areas[_idx].real_temp = v['real_temp']
+                        self._areas[_idx].order_temp = v['order_temp']
+
+        return self._areas
 
     def get_units(self) -> list:
         ''' get units '''
@@ -381,15 +401,16 @@ class Koolnova:
                             zone_id:int,
                             ) -> float:
         """ get current temp of specific Area """
+        _ret, _idx = self._area_defined(id_search = zone_id)
+        if not _ret:
+            _LOGGER.error("Area not defined ...")
+            return False
+
         ret, temp = await self._client.area_temp(id_zone = zone_id)
         if not ret:
             _LOGGER.error("Error reading temp for area with ID: {}".format(zone_id))
             return False
-        for idx, area in enumerate(self._areas):
-            if area.id_zone == zone_id:
-                # update areas list value from modbus response
-                self._areas[idx].real_temp = temp
-
+        self._areas[_idx].real_temp = temp
         return temp
 
     async def set_area_target_temp(self,
@@ -397,28 +418,32 @@ class Koolnova:
                                     temp:float,
                                     ) -> bool:
         """ set target temp of specific area """
+        _ret, _idx = self._area_defined(id_search = zone_id)
+        if not _ret:
+            _LOGGER.error("Area not defined ...")
+            return False
+
         ret = await self._client.set_area_target_temp(zone_id = zone_id, val = temp)
         if not ret:
             _LOGGER.error("Error writing target temp for area with ID: {}".format(zone_id))
             return False
-        for idx, area in enumerate(self._areas):
-            if area.id_zone == zone_id:
-                # update areas list value from modbus response
-                self._areas[idx].order_temp = temp
+        self._areas[_idx].order_temp = temp
         return True
 
     async def get_area_target_temp(self,
                                     zone_id:int,
                                     ) -> float:
         """ get target temp of specific area """
+        _ret, _idx = self._area_defined(id_search = zone_id)
+        if not _ret:
+            _LOGGER.error("Area not defined ...")
+            return False
+
         ret, temp = await self._client.area_target_temp(id_zone = zone_id)
         if not ret:
             _LOGGER.error("Error reading target temp for area with ID: {}".format(zone_id))
             return 0.0
-        for idx, area in enumerate(self._areas):
-            if area.id_zone == zone_id:
-                # update areas list value from modbus response
-                self._areas[idx].order_temp = temp
+        self._areas[_idx].order_temp = temp
         return temp
 
     async def set_area_clim_mode(self,
@@ -428,6 +453,7 @@ class Koolnova:
         """ set climate mode for specific area """
         _ret, _idx = self._area_defined(id_search = zone_id)
         if not _ret:
+            _LOGGER.error("Area not defined ...")
             return False
 
         if mode == const.ZoneClimMode.OFF:
@@ -462,6 +488,7 @@ class Koolnova:
         # test if area id is defined
         _ret, _idx = self._area_defined(id_search = zone_id)
         if not _ret:
+            _LOGGER.error("Area not defined ...")
             return False
 
         if self._areas[_idx].state == const.ZoneState.STATE_OFF:

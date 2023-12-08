@@ -181,7 +181,7 @@ class Operations:
         regs, ret = await self.__read_registers(start_reg = const.REG_START_ZONE + (4 * (zone_id - 1)), 
                                                 count = const.NUM_REG_PER_ZONE)
         if not ret:
-            raise ReadRegistersError("Read holding regsiter error")
+            raise ReadRegistersError("Error reading holding register")
         if const.ZoneRegister(regs[0] >> 1) == const.ZoneRegister.REGISTER_OFF:
             _LOGGER.warning("Zone with id: {} is not registered".format(zone_id))
             return False, {}
@@ -193,6 +193,28 @@ class Operations:
         zone_dict['order_temp'] = regs[2]/2
         zone_dict['real_temp'] = regs[3]/2
         return True, zone_dict
+
+    async def areas_registered(self) -> (bool, dict):
+        """ Get all areas values """
+        _areas_dict:dict = {}
+        regs, ret = await self.__read_registers(start_reg = const.REG_START_ZONE, 
+                                                count = const.NUM_REG_PER_ZONE * const.NB_ZONE_MAX)
+        if not ret:
+            raise ReadRegistersError("Error reading holding register")
+        for area_idx in range(const.NB_ZONE_MAX):
+            _idx:int = 4 * area_idx
+            _area_dict:dict = {}
+            if const.ZoneRegister(regs[_idx + const.REG_LOCK_ZONE] >> 1) == const.ZoneRegister.REGISTER_OFF:
+                continue
+
+            _area_dict['state'] = const.ZoneState(regs[_idx + const.REG_LOCK_ZONE] & 0b01)
+            _area_dict['register'] = const.ZoneRegister(regs[_idx + const.REG_LOCK_ZONE] >> 1)
+            _area_dict['fan'] = const.ZoneFanMode((regs[_idx + const.REG_STATE_AND_FLOW] & 0xF0) >> 4)
+            _area_dict['clim'] = const.ZoneClimMode(regs[_idx + const.REG_STATE_AND_FLOW] & 0x0F)
+            _area_dict['order_temp'] = regs[_idx + const.REG_TEMP_ORDER]/2
+            _area_dict['real_temp'] = regs[_idx + const.REG_TEMP_REAL]/2
+            _areas_dict[area_idx + 1] = _area_dict
+        return True, _areas_dict
 
     async def system_status(self) -> (bool, const.SysState):
         ''' Read system status register '''

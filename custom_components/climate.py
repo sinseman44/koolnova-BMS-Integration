@@ -3,13 +3,18 @@ from __future__ import annotations
 from datetime import timedelta
 import logging
 
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.util import Throttle
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.components.climate import (
     ClimateEntity,
     ConfigEntry,
+)
+from homeassistant.helpers.update_coordinator import (
+    CoordinatorEntity,
+    DataUpdateCoordinator,
+    UpdateFailed,
 )
 
 from homeassistant.components.climate.const import (
@@ -51,17 +56,38 @@ MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=30)
 
 async def async_setup_entry(hass: HomeAssistant,
                             entry: ConfigEntry,
-                            async_add_entities: AddEntitiesCallback):
+                            async_add_entities: AddEntitiesCallback
+                            ) -> None:
     """Setup switch entries"""
 
     entities = []
+    
     for device in hass.data[DOMAIN]:
+        coordinator = ClimateCoordinator(hass, device)
         for area in device.areas:
             _LOGGER.debug("Device: {} - Area: {}".format(device, area))
-            entities.append(AreaClimateEntity(device, area))
+            entities.append(AreaClimateEntity(coordinator, device, area))
         async_add_entities(entities)
 
-class AreaClimateEntity(ClimateEntity):
+class ClimateCoordinator(DataUpdateCoordinator):
+    """ Climate coordinator """
+
+    def __init__(self,
+                    hass: HomeAssistant, 
+                    device: Koolnova,
+                ) -> None:
+        """ Class constructor """
+        super().__init__(
+            hass,
+            _LOGGER,
+            # Name of the data. For logging purposes.
+            name=DOMAIN,
+            update_method=device.update_all_areas,
+            # Polling interval. Will only be polled if there are subscribers.
+            update_interval=timedelta(seconds=30),
+        )
+
+class AreaClimateEntity(CoordinatorEntity, ClimateEntity):
     """ Reperesentation of a climate entity """
     # pylint: disable = too-many-instance-attributes
 
@@ -78,11 +104,13 @@ class AreaClimateEntity(ClimateEntity):
     _attr_target_temperature_low: float = MIN_TEMP_ORDER
     _attr_target_temperature_step: float = STEP_TEMP_ORDER
 
-    def __init__(self, 
+    def __init__(self,
+                coordinator: ClimateCoordinator, # pylint: disable=unused-argument
                 device: Koolnova, # pylint: disable=unused-argument
                 area: Area, # pylint: disable=unused-argument
                 ) -> None:
         """ Class constructor """
+        super().__init__(coordinator)
         self._device = device
         self._area = area
         self._attr_name = f"{device.name} {area.name} area"
@@ -125,7 +153,9 @@ class AreaClimateEntity(ClimateEntity):
                 break
         ret = await self._device.set_area_fan_mode(zone_id = self._area.id_zone,
                                                     mode = ZoneFanMode(opt))
-        await self._update_state()
+        if not ret:
+            _LOGGER.exception("Error setting new fan value for area id {}".format(self._area.id_zone))
+        await self.coordinator.async_request_refresh()
 
     async def async_set_hvac_mode(self, hvac_mode:HVACMode) -> None:
         """ set new target hvac mode """
@@ -137,39 +167,67 @@ class AreaClimateEntity(ClimateEntity):
                 break
         ret = await self._device.set_area_clim_mode(zone_id = self._area.id_zone, 
                                                     mode = ZoneClimMode(opt))
-        await self._update_state()
-
-    async def async_turn_on(self) -> None:
-        """ turn the entity on """
-        _LOGGER.debug("[Climate {}] turn on the entity".format(self._area.id_zone))
-        #await self._update_state()
-
-    async def async_turn_off(self) -> None:
-        """ turn the entity off """
-        _LOGGER.debug("[Climate {}] turn off the entity".format(self._area.id_zone))
-        #await self._update_state()
-
-    async def _update_state(self) -> None:
-        """ Private update attributes """
-        _LOGGER.debug("[Climate {}] _update_state".format(self._area.id_zone))
-        # retreive current temperature from specific area
-        ret, up_area = await self._device.update_area(self._area.id_zone)
         if not ret:
-            _LOGGER.error("[Climate {}] Cannot update area values")
-            return
-        self._area = up_area
-        _LOGGER.debug("[Climate {}] temp:{} - target:{} - state: {} - hvac:{} - fan:{}".format(self._area.id_zone,
-                                                                                                self._area.real_temp,
-                                                                                                self._area.order_temp,
-                                                                                                self._area.state,
-                                                                                                self._area.clim_mode,
-                                                                                                self._area.fan_mode))
-        self._attr_current_temperature = self._area.real_temp
-        self._attr_target_temperature = self._area.order_temp
-        self._attr_hvac_mode = self._translate_to_hvac_mode()
-        self._attr_fan_mode = FAN_TRANSLATION[int(self._area.fan_mode)]
+            _LOGGER.exception("Error setting new hvac value for area id {}".format(self._area.id_zone))
+        await self.coordinator.async_request_refresh()
 
-    @Throttle(MIN_TIME_BETWEEN_UPDATES)
-    async def async_update(self):
-        """ Retreive latest values """
-        await self._update_state()
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """ Handle updated data from the coordinator """
+        for _cur_area in self.coordinator.data:
+            if _cur_area.id_zone == self._area.id_zone:
+                _LOGGER.debug("[Climate {}] temp:{} - target:{} - state: {} - hvac:{} - fan:{}".format(_cur_area.id_zone,
+                                                                                                        _cur_area.real_temp,
+                                                                                                        _cur_area.order_temp,
+                                                                                                        _cur_area.state,
+                                                                                                        _cur_area.clim_mode,
+                                                                                                        _cur_area.fan_mode))
+                self._area = _cur_area
+                self._attr_current_temperature = _cur_area.real_temp
+                self._attr_target_temperature = _cur_area.order_temp
+                if _cur_area.state == ZoneState.STATE_OFF:
+                    self._attr_hvac_mode = HVACMode.OFF
+                else:
+                    self._attr_hvac_mode = HVAC_TRANSLATION[int(_cur_area.clim_mode)]
+                self._attr_fan_mode = FAN_TRANSLATION[int(_cur_area.fan_mode)]
+        self.async_write_ha_state()
+
+#    async def async_turn_on(self) -> None:
+#        """ turn the entity on """
+#        _LOGGER.debug("[Climate {}] turn on the entity".format(self._area.id_zone))
+#        #await self._update_state()
+
+#    async def async_turn_off(self) -> None:
+#        """ turn the entity off """
+#        _LOGGER.debug("[Climate {}] turn off the entity".format(self._area.id_zone))
+#        #await self._update_state()
+
+#    async def _update_state(self) -> None:
+#        """ Private update attributes """
+#        _LOGGER.debug("[Climate {}] _update_state".format(self._area.id_zone))
+#        # retreive current temperature from specific area
+#        ret, up_area = await self._device.update_area(self._area.id_zone)
+#        if not ret:
+#            _LOGGER.error("[Climate {}] Cannot update area values")
+#            return
+#        self._area = up_area
+#        _LOGGER.debug("[Climate {}] temp:{} - target:{} - state: {} - hvac:{} - fan:{}".format(self._area.id_zone,
+#                                                                                                self._area.real_temp,
+#                                                                                                self._area.order_temp,
+#                                                                                                self._area.state,
+#                                                                                                self._area.clim_mode,
+#                                                                                                self._area.fan_mode))
+#        self._attr_current_temperature = self._area.real_temp
+#        self._attr_target_temperature = self._area.order_temp
+#        self._attr_hvac_mode = self._translate_to_hvac_mode()
+#        self._attr_fan_mode = FAN_TRANSLATION[int(self._area.fan_mode)]
+
+#    @Throttle(MIN_TIME_BETWEEN_UPDATES)
+#    async def async_update(self):
+#        """ Retreive latest values """
+#        await self._update_state()
+
+#    @property
+#    def should_poll(self) -> bool:
+#        """ Do not poll for those entities """
+#        return False
