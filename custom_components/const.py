@@ -57,11 +57,11 @@ GLOBAL_MODES = [
     GLOBAL_MODE_POS_5,
 ]
 
-EFF_POS_1 = "lower efficiency"
-EFF_POS_2 = "low efficiency"
-EFF_POS_3 = "Medium efficiency"
-EFF_POS_4 = "High efficiency"
-EFF_POS_5 = "Higher efficiency"
+EFF_POS_1 = "lower"
+EFF_POS_2 = "low"
+EFF_POS_3 = "Medium"
+EFF_POS_4 = "High"
+EFF_POS_5 = "Higher"
 
 EFF_TRANSLATION = {
     int(Efficiency.LOWER_EFF): EFF_POS_1,

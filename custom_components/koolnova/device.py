@@ -1,4 +1,4 @@
-""" local API to manage system, units and zones """ 
+""" local API to manage system, engines and areas """ 
 
 import re, sys, os
 import logging as log
@@ -138,6 +138,84 @@ class Area:
                         self._real_temp,
                         self._order_temp))
 
+class Engine:
+    ''' koolnova Engine class '''
+
+    def __init__(self,
+                    engine_id:int = 0,
+                    throughput:int = 0,
+                    state:const.FlowEngine = const.FlowEngine.AUTO,
+                    order_temp:float = 0
+                ) -> None:
+        ''' Constructor class '''
+        self._engine_id = engine_id
+        self._throughput = throughput
+        self._state = state
+        self._order_temp = order_temp
+
+    @property
+    def engine_id(self) -> int:
+        ''' Get Engine ID '''
+        return self._engine_id
+
+    @engine_id.setter
+    def engine_id(self, val:int) -> None:
+        ''' Set Engine ID '''
+        if not isinstance(val, int):
+            raise AssertionError('Input variable must be Int')
+        if val > const.NUM_OF_ENGINES:
+            raise NumUnitError('Engine ID must be lower than {}'.format(const.NUM_OF_ENGINES))
+        self._engine_id = val
+
+    @property
+    def throughput(self) -> int:
+        ''' Get throughput Engine '''
+        return self._throughput
+
+    @throughput.setter
+    def throughput(self, val:int) -> None:
+        ''' Set throughput Engine '''
+        if not isinstance(val, int):
+            raise AssertionError('Input variable must be Int')
+        if val > const.FLOW_ENGINE_VAL_MAX or val < const.FLOW_ENGINE_VAL_MIN:
+            raise FlowEngineError('throughput engine value ({}) must be between {} and {}'.format(val,
+                                    const.FLOW_ENGINE_VAL_MIN,
+                                    const.FLOW_ENGINE_VAL_MAX))
+        self._throughput = val
+
+    @property
+    def state(self) -> const.FlowEngine:
+        ''' Get Engine state '''
+        return self._state
+
+    @state.setter
+    def state(self, val:const.FlowEngine) -> None:
+        ''' Set Engine state '''
+        if not isinstance(val, const.FlowEngine):
+            raise AssertionError('Input variable must be Enum FlowEngine')
+        self._state = val
+
+    @property
+    def order_temp(self) -> float:
+        ''' Get Order Temp '''
+        return self._order_temp
+
+    @order_temp.setter
+    def order_temp(self, val:float = 0.0) -> None:
+        ''' Set order temp engine '''
+        if not isinstance(val, float):
+            raise AssertionError('Input variable must be Int')
+        if val > 0 and (val > 30.0 or val < 15.0):
+            raise OrderTempError('Flow Engine value ({}) must be between 15 and 30'.format(val))
+        self._order_temp = val
+
+    def __repr__(self) -> str:
+        ''' repr method '''
+        return repr('Unit(Id:{}, Throughput:{}, State:{}, Order Temp:{})'.format(self._engine_id,
+                        self._throughput,
+                        self._state,
+                        self._order_temp))
+
 class Koolnova:
     ''' koolnova Device class '''
 
@@ -162,7 +240,7 @@ class Koolnova:
         self._global_mode = const.GlobalMode.COLD
         self._efficiency = const.Efficiency.LOWER_EFF
         self._sys_state = const.SysState.SYS_STATE_OFF 
-        self._units = []
+        self._engines = []
         self._areas = [] 
 
     def _area_defined(self, 
@@ -202,18 +280,17 @@ class Koolnova:
             _LOGGER.error("Error retreiving efficiency")
             self._efficiency = const.Efficiency.LOWER_EFF
         
-        #await asyncio.sleep(0.1)
+        await asyncio.sleep(0.1)
 
-        #_LOGGER.debug("Retreive units ...")
-        #for idx in range(1, const.NUM_OF_ENGINES + 1):
-        #    _LOGGER.debug("Unit id: {}".format(idx))
-        #    unit = Unit(unit_id = idx)
-        #    ret, unit.flow_engine = await self._client.flow_engine(unit_id = idx)
-        #    ret, unit.flow_state = await self._client.flow_state_engine(unit_id = idx)
-        #    ret, unit.order_temp = await self._client.order_temp_engine(unit_id = idx)
-        #    self._units.append(unit)
-        #    await asyncio.sleep(0.1)
-        
+        _LOGGER.debug("Retreive engines ...")
+        for idx in range(1, const.NUM_OF_ENGINES + 1):
+            _LOGGER.debug("Engine id: {}".format(idx))
+            engine = Engine(engine_id = idx)
+            ret, engine.throughput = await self._client.engine_throughput(engine_id = idx)
+            ret, engine.state = await self._client.engine_state(engine_id = idx)
+            ret, engine.order_temp = await self._client.engine_order_temp(engine_id = idx)
+            self._engines.append(engine)
+            await asyncio.sleep(0.1)
         return True
 
     async def connect(self) -> bool:
@@ -329,9 +406,10 @@ class Koolnova:
 
         return self._areas
 
-    def get_units(self) -> list:
-        ''' get units '''
-        return self._units
+    @property
+    def engines(self) -> list:
+        ''' get engines '''
+        return self._engines
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -511,84 +589,6 @@ class Koolnova:
                         self._global_mode,
                         self._efficiency,
                         self._sys_state))
-
-class Unit:
-    ''' koolnova Unit class '''
-
-    def __init__(self,
-                    unit_id:int = 0,
-                    flow_engine:int = 0,
-                    flow_state:const.FlowEngine = const.FlowEngine.AUTO,
-                    order_temp:float = 0
-                ) -> None:
-        ''' Constructor class '''
-        self._unit_id = unit_id
-        self._flow_engine = flow_engine
-        self._flow_state = flow_state
-        self._order_temp = order_temp
-
-    @property
-    def unit_id(self) -> int:
-        ''' Get Unit ID '''
-        return self._unit_id
-
-    @unit_id.setter
-    def unit_id(self, val:int) -> None:
-        ''' Set Unit ID '''
-        if not isinstance(val, int):
-            raise AssertionError('Input variable must be Int')
-        if val > const.NUM_OF_ENGINES:
-            raise NumUnitError('Unit ID must be lower than {}'.format(const.NUM_OF_ENGINES))
-        self._unit_id = val
-
-    @property
-    def flow_engine(self) -> int:
-        ''' Get Flow Engine '''
-        return self._flow_engine
-
-    @flow_engine.setter
-    def flow_engine(self, val:int) -> None:
-        ''' Set Flow Engine '''
-        if not isinstance(val, int):
-            raise AssertionError('Input variable must be Int')
-        if val > const.FLOW_ENGINE_VAL_MAX or val < const.FLOW_ENGINE_VAL_MIN:
-            raise FlowEngineError('Flow Engine value ({}) must be between {} and {}'.format(val,
-                                    const.FLOW_ENGINE_VAL_MIN,
-                                    const.FLOW_ENGINE_VAL_MAX))
-        self._flow_engine = val
-
-    @property
-    def flow_state(self) -> const.FlowEngine:
-        ''' Get Flow State '''
-        return self._flow_state
-
-    @flow_state.setter
-    def flow_state(self, val:const.FlowEngine) -> None:
-        ''' Set Flow State '''
-        if not isinstance(val, const.FlowEngine):
-            raise AssertionError('Input variable must be Enum FlowEngine')
-        self._flow_state = val
-
-    @property
-    def order_temp(self) -> float:
-        ''' Get Order Temp '''
-        return self._order_temp
-
-    @order_temp.setter
-    def order_temp(self, val:float = 0.0) -> None:
-        ''' Set Flow Engine '''
-        if not isinstance(val, float):
-            raise AssertionError('Input variable must be Int')
-        if val > 0 and (val > 30.0 or val < 15.0):
-            raise OrderTempError('Flow Engine value ({}) must be between 15 and 30'.format(val))
-        self._flow_engine = val
-
-    def __repr__(self) -> str:
-        ''' repr method '''
-        return repr('Unit(Id:{}, Flow Engine:{}, Flow State:{}, Order Temp:{})'.format(self._unit_id,
-                        self._flow_engine,
-                        self._flow_state,
-                        self._order_temp))
 
 class NumUnitError(Exception):
     ''' user defined exception '''

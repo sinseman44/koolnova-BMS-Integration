@@ -23,8 +23,9 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass: HomeAssistant,
                             entry: ConfigEntry,
-                            async_add_entities: AddEntitiesCallback):
-    """Setup switch entries"""
+                            async_add_entities: AddEntitiesCallback,
+                            ):
+    """ Setup switch entries """
 
     for device in hass.data[DOMAIN]:
         _LOGGER.debug("Device: {}".format(device))
@@ -38,40 +39,33 @@ class SystemStateSwitch(SwitchEntity):
     _attr_has_entity_name = True
 
     def __init__(self,
-                    device: Koolnova,
+                    device: Koolnova, # pylint: disable=unused-argument,
                 ) -> None:
         super().__init__()
         self._device = device
-        self._attr_name = f"{device.name} System State"
+        self._attr_name = f"{device.name} Global HVAC State"
         self._attr_device_info = device.device_info
-        self._attr_unique_id = f"{DOMAIN}-SystemState-switch"
-        _LOGGER.debug("[SYS STATE] State: {}".format(bool(int(self._device.sys_state))))
+        self._attr_unique_id = f"{DOMAIN}-Global-HVACState-switch"
         self._is_on = bool(int(self._device.sys_state))
 
     async def async_turn_on(self, **kwargs):
-        """Turn the entity on."""
-        _LOGGER.debug("[SYS STATE] turn on")
+        """ Turn the entity on. """
         self._is_on = True
         await self._device.set_sys_state(SysState.SYS_STATE_ON)
 
     async def async_turn_off(self, **kwargs):
-        """Turn the entity off."""
-        _LOGGER.debug("[SYS STATE] turn off")
+        """ Turn the entity off. """
         self._is_on = False
         await self._device.set_sys_state(SysState.SYS_STATE_OFF)
 
-    def _update_state(self) -> None:
-        """ update system state """
-        self._is_on = bool(int(self._device.sys_state))
-
     @Throttle(MIN_TIME_BETWEEN_UPDATES)
     async def async_update(self):
-        """Retrieve latest state."""
-        self._update_state()
+        """ Retrieve latest state. """
+        self._is_on = bool(int(self._device.sys_state))
 
     @property
     def is_on(self):
-        """If the switch is currently on or off."""
+        """ If the switch is currently on or off. """
         return self._is_on
 
     @property
@@ -81,5 +75,5 @@ class SystemStateSwitch(SwitchEntity):
     
     @property
     def should_poll(self) -> bool:
-        """ Do not poll for those entities """
+        """ Do not poll for this entity """
         return False

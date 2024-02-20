@@ -28,8 +28,9 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass: HomeAssistant,
                             entry: ConfigEntry,
-                            async_add_entities: AddEntitiesCallback):
-    """Setup select entries"""
+                            async_add_entities: AddEntitiesCallback,
+                            ):
+    """ Setup select entries """
 
     for device in hass.data[DOMAIN]:
         _LOGGER.debug("Device: {}".format(device))
@@ -40,37 +41,28 @@ async def async_setup_entry(hass: HomeAssistant,
         async_add_entities(entities)
 
 class GlobalModeSelect(SelectEntity):
-    """Select component to set Global Mode """
+    """ Select component to set global HVAC mode """
 
     def __init__(self, 
-                    device: Koolnova,
+                    device: Koolnova, # pylint: disable=unused-argument,
                 ) -> None:
         super().__init__()
         self._attr_options = GLOBAL_MODES
         self._device = device
-        self._attr_name = f"{device.name} Global Mode"
+        self._attr_name = f"{device.name} Global HVAC Mode"
         self._attr_device_info = device.device_info
         self._attr_icon = "mdi:cog-clockwise"
-        self._attr_unique_id = f"{DOMAIN}-GlobalMode-select"
-        self.select_option(
-            GLOBAL_MODE_TRANSLATION[int(self._device.global_mode)]
-        )
-
-    def _update_state(self) -> None:
-        """ update global mode """
-        _LOGGER.debug("[GLOBAL MODE] _update_state")
+        self._attr_unique_id = f"{DOMAIN}-Global-HVACMode-select"
         self.select_option(
             GLOBAL_MODE_TRANSLATION[int(self._device.global_mode)]
         )
 
     def select_option(self, option: str) -> None:
-        """Change the selected option."""
-        _LOGGER.debug("[GLOBAL MODE] select_option: {}".format(option))
+        """ Change the selected option. """
         self._attr_current_option = option
 
     async def async_select_option(self, option: str) -> None:
-        """Change the selected option."""
-        _LOGGER.debug("[GLOBAL_MODE] async_select_option: {}".format(option))
+        """ Change the selected option. """
         opt = 0
         for k,v in GLOBAL_MODE_TRANSLATION.items():
             if v == option:
@@ -81,42 +73,38 @@ class GlobalModeSelect(SelectEntity):
 
     @Throttle(MIN_TIME_BETWEEN_UPDATES)
     async def async_update(self):
-        """Retrieve latest state."""
-        _LOGGER.debug("[GLOBAL MODE] async_update")
-        #await self._device.update()
-        self._update_state()
+        """ Retrieve latest state of global mode """
+        self.select_option(
+            GLOBAL_MODE_TRANSLATION[int(self._device.global_mode)]
+        )
 
 class EfficiencySelect(SelectEntity):
-    """Select component to set Efficiency """
+    """Select component to set global efficiency """
 
     def __init__(self, 
-                    device: Koolnova,
+                    device: Koolnova, # pylint: disable=unused-argument,
                 ) -> None:
         super().__init__()
         self._attr_options = EFF_MODES
         self._device = device
-        self._attr_name = f"{device.name} Efficiency"
+        self._attr_name = f"{device.name} Global HVAC Efficiency"
         self._attr_device_info = device.device_info
         self._attr_icon = "mdi:wind-power-outline"
-        self._attr_unique_id = f"{DOMAIN}-Efficiency-select"
+        self._attr_unique_id = f"{DOMAIN}-Global-HVACEff-select"
         self.select_option(
             EFF_TRANSLATION[int(self._device.efficiency)]
         )
 
-    def _update_state(self) -> None:
-        """ update efficiency """
-        _LOGGER.debug("[EFF] _update_state")
-        self.select_option(
-            EFF_TRANSLATION[int(self._device.efficiency)]
-        )
-
-    def select_option(self, option: str) -> None:
-        """Change the selected option."""
-        _LOGGER.debug("[EFF] select_option: {}".format(option))
+    def select_option(self,
+                        option: str,
+                        ) -> None:
+        """ Change the selected option. """
         self._attr_current_option = option
 
-    async def async_select_option(self, option: str) -> None:
-        """Change the selected option."""
+    async def async_select_option(self,
+                                    option: str,
+                                    ) -> None:
+        """ Change the selected option. """
         _LOGGER.debug("[EFF] async_select_option: {}".format(option))
         opt = 0
         for k,v in EFF_TRANSLATION.items():
@@ -128,7 +116,7 @@ class EfficiencySelect(SelectEntity):
 
     @Throttle(MIN_TIME_BETWEEN_UPDATES)
     async def async_update(self):
-        """Retrieve latest state."""
-        _LOGGER.debug("[EFF] async_update")
-        #await self._device.update()
-        self._update_state()
+        """ Retrieve latest state of global efficiency """
+        self.select_option(
+            EFF_TRANSLATION[int(self._device.efficiency)]
+        )

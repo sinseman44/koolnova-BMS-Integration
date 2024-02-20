@@ -197,6 +197,7 @@ class Operations:
     async def areas_registered(self) -> (bool, dict):
         """ Get all areas values """
         _areas_dict:dict = {}
+        # retreive all areas (registered and unregistered)
         regs, ret = await self.__read_registers(start_reg = const.REG_START_ZONE, 
                                                 count = const.NUM_REG_PER_ZONE * const.NB_ZONE_MAX)
         if not ret:
@@ -204,6 +205,7 @@ class Operations:
         for area_idx in range(const.NB_ZONE_MAX):
             _idx:int = 4 * area_idx
             _area_dict:dict = {}
+            # test if area is registered or not
             if const.ZoneRegister(regs[_idx + const.REG_LOCK_ZONE] >> 1) == const.ZoneRegister.REGISTER_OFF:
                 continue
 
@@ -267,8 +269,8 @@ class Operations:
             _LOGGER.error('Error writing efficiency')
         return ret
 
-    async def flow_engines(self) -> (bool, list):
-        ''' read flow engines AC1, AC2, AC3, AC4 '''
+    async def engines_throughput(self) -> (bool, list):
+        ''' read engines throughput AC1, AC2, AC3, AC4 '''
         engines_lst = []
         regs, ret = await self.__read_registers(const.REG_START_FLOW_ENGINE,
                                                 const.NUM_OF_ENGINES)
@@ -276,52 +278,52 @@ class Operations:
             for idx, reg in enumerate(regs):
                 engines_lst.append(const.FlowEngine(reg))
         else:
-            _LOGGER.error('Error retreive flow engines')
+            _LOGGER.error('Error retreive engines throughput')
         return ret, engines_lst
 
-    async def flow_engine(self,
-                            unit_id:int = 0,
-                            ) -> (bool, int):
-        ''' read flow unit specified by unit id '''
-        if unit_id < 1 or unit_id > 4:
-            raise UnitIdError("Unit Id must be between 1 and 4")
-        reg, ret = await self.__read_register(const.REG_START_FLOW_ENGINE + (unit_id - 1))
+    async def engine_throughput(self,
+                                engine_id:int = 0,
+                                ) -> (bool, int):
+        ''' read engine throughput specified by id '''
+        if engine_id < 1 or engine_id > 4:
+            raise UnitIdError("engine Id must be between 1 and 4")
+        reg, ret = await self.__read_register(const.REG_START_FLOW_ENGINE + (engine_id - 1))
         if not ret:
-            _LOGGER.error('Error retreive flow engine for id:{}'.format(unit_id))
+            _LOGGER.error('Error retreive engine throughput for id:{}'.format(engine_id))
             reg = 0
         return ret, reg
 
-    async def flow_state_engine(self,
-                                unit_id:int = 0,
-                                ) -> (bool, const.FlowEngine):
-        if unit_id < 1 or unit_id > 4:
-            raise UnitIdError("Unit Id must be between 1 and 4")
-        reg, ret = await self.__read_register(const.REG_START_FLOW_STATE_ENGINE + (unit_id - 1))
+    async def engine_state(self,
+                            engine_id:int = 0,
+                            ) -> (bool, const.FlowEngine):
+        if engine_id < 1 or engine_id > 4:
+            raise UnitIdError("Engine id must be between 1 and 4")
+        reg, ret = await self.__read_register(const.REG_START_FLOW_STATE_ENGINE + (engine_id - 1))
         if not ret:
-            _LOGGER.error('Error retreive flow state for id:{}'.format(unit_id))
+            _LOGGER.error('Error retreive engine state for id:{}'.format(engine_id))
             reg = 0
         return ret, const.FlowEngine(reg)
 
-    async def order_temp_engine(self,
-                                unit_id:int = 0,
+    async def engine_order_temp(self,
+                                engine_id:int = 0,
                                 ) -> (bool, float):
-        if unit_id < 1 or unit_id > 4:
-            raise UnitIdError("Unit Id must be between 1 and 4")
-        reg, ret = await self.__read_register(const.REG_START_ORDER_TEMP + (unit_id - 1))
+        if engine_id < 1 or engine_id > 4:
+            raise UnitIdError("Engine id must be between 1 and 4")
+        reg, ret = await self.__read_register(const.REG_START_ORDER_TEMP + (engine_id - 1))
         if not ret:
-            _LOGGER.error('Error retreive order temp for id:{}'.format(unit_id))
+            _LOGGER.error('Error retreive engine order temp for id:{}'.format(engine_id))
             reg = 0
         return ret, reg / 2
 
-    async def orders_temp(self) -> (bool, list):
-        ''' read orders temperature AC1, AC2, AC3, AC4 '''
+    async def engine_orders_temp(self) -> (bool, list):
+        ''' read orders temperature for engines : AC1, AC2, AC3, AC4 '''
         engines_lst = []
         regs, ret = await self.__read_registers(const.REG_START_ORDER_TEMP, const.NUM_OF_ENGINES)
         if ret:
             for idx, reg in enumerate(regs):
                 engines_lst.append(reg/2)
         else:
-            _LOGGER.error('error reading flow engines registers')
+            _LOGGER.error('error reading engines order temp registers')
         return ret, engines_lst
 
     async def set_area_target_temp(self,

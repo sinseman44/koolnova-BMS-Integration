@@ -133,7 +133,9 @@ class AreaClimateEntity(CoordinatorEntity, ClimateEntity):
 
         return ret
 
-    async def async_set_temperature(self, **kwargs) -> None:
+    async def async_set_temperature(self,
+                                    **kwargs,
+                                    ) -> None:
         """ set new target temperature """
         _LOGGER.debug("[Climate {}] set target temp - kwargs: {}".format(self._area.id_zone, kwargs))
         if "temperature" in kwargs:
@@ -143,8 +145,11 @@ class AreaClimateEntity(CoordinatorEntity, ClimateEntity):
                 _LOGGER.error("Error sending target temperature for area id {}".format(self._area.id_zone))
         else:
             _LOGGER.warning("Target temperature not defined for climate id {}".format(self._area.id_zone))
+        await self.coordinator.async_request_refresh()
 
-    async def async_set_fan_mode(self, fan_mode:str) -> None:
+    async def async_set_fan_mode(self,
+                                    fan_mode:str,
+                                    ) -> None:
         """ set new target fan mode """
         _LOGGER.debug("[Climate {}] set new fan mode: {}".format(self._area.id_zone, fan_mode))
         for k,v in FAN_TRANSLATION.items():
@@ -157,7 +162,9 @@ class AreaClimateEntity(CoordinatorEntity, ClimateEntity):
             _LOGGER.exception("Error setting new fan value for area id {}".format(self._area.id_zone))
         await self.coordinator.async_request_refresh()
 
-    async def async_set_hvac_mode(self, hvac_mode:HVACMode) -> None:
+    async def async_set_hvac_mode(self,
+                                    hvac_mode:HVACMode,
+                                    ) -> None:
         """ set new target hvac mode """
         _LOGGER.debug("[Climate {}] set new hvac mode: {}".format(self._area.id_zone, hvac_mode))
         opt = 0
@@ -191,43 +198,3 @@ class AreaClimateEntity(CoordinatorEntity, ClimateEntity):
                     self._attr_hvac_mode = HVAC_TRANSLATION[int(_cur_area.clim_mode)]
                 self._attr_fan_mode = FAN_TRANSLATION[int(_cur_area.fan_mode)]
         self.async_write_ha_state()
-
-#    async def async_turn_on(self) -> None:
-#        """ turn the entity on """
-#        _LOGGER.debug("[Climate {}] turn on the entity".format(self._area.id_zone))
-#        #await self._update_state()
-
-#    async def async_turn_off(self) -> None:
-#        """ turn the entity off """
-#        _LOGGER.debug("[Climate {}] turn off the entity".format(self._area.id_zone))
-#        #await self._update_state()
-
-#    async def _update_state(self) -> None:
-#        """ Private update attributes """
-#        _LOGGER.debug("[Climate {}] _update_state".format(self._area.id_zone))
-#        # retreive current temperature from specific area
-#        ret, up_area = await self._device.update_area(self._area.id_zone)
-#        if not ret:
-#            _LOGGER.error("[Climate {}] Cannot update area values")
-#            return
-#        self._area = up_area
-#        _LOGGER.debug("[Climate {}] temp:{} - target:{} - state: {} - hvac:{} - fan:{}".format(self._area.id_zone,
-#                                                                                                self._area.real_temp,
-#                                                                                                self._area.order_temp,
-#                                                                                                self._area.state,
-#                                                                                                self._area.clim_mode,
-#                                                                                                self._area.fan_mode))
-#        self._attr_current_temperature = self._area.real_temp
-#        self._attr_target_temperature = self._area.order_temp
-#        self._attr_hvac_mode = self._translate_to_hvac_mode()
-#        self._attr_fan_mode = FAN_TRANSLATION[int(self._area.fan_mode)]
-
-#    @Throttle(MIN_TIME_BETWEEN_UPDATES)
-#    async def async_update(self):
-#        """ Retreive latest values """
-#        await self._update_state()
-
-#    @property
-#    def should_poll(self) -> bool:
-#        """ Do not poll for those entities """
-#        return False
