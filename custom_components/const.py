@@ -22,8 +22,8 @@ from .koolnova.const import (
 
 DOMAIN = "testVBE_4"
 PLATFORMS: list[Platform] = [Platform.SENSOR,
-                                Platform.SELECT, 
-                                Platform.SWITCH, 
+                                Platform.SELECT,
+                                Platform.SWITCH,
                                 Platform.CLIMATE]
 
 CONF_NAME = "koolnova_test_HA"
@@ -31,7 +31,7 @@ CONF_DEVICE_ID = "device_id"
 
 DEVICE_MANUFACTURER = "koolnova"
 
-MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=60)
+#MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=60)
 
 GLOBAL_MODE_POS_1 = "cold"
 GLOBAL_MODE_POS_2 = "heat"

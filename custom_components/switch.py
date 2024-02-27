@@ -5,21 +5,29 @@ import logging
 
 from homeassistant.core import HomeAssistant, callback, Event, State
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.components.switch import SwitchEntity
+from homeassistant.components.switch import (
+    SwitchEntity,
+    SwitchDeviceClass
+)
+
 from homeassistant.util import Throttle
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
 )
 
 from .const import (
-    DOMAIN,
-    MIN_TIME_BETWEEN_UPDATES,
+    DOMAIN
 )
 
 from .coordinator import KoolnovaCoordinator
 
-from homeassistant.const import UnitOfTime
+from homeassistant.const import (
+    STATE_OFF,
+    STATE_ON
+)
+
 from .koolnova.device import Koolnova
 from .koolnova.const import (
     SysState,
@@ -43,40 +51,58 @@ async def async_setup_entry(hass: HomeAssistant,
 
 class SystemStateSwitch(CoordinatorEntity, SwitchEntity):
     """Select component to set system state """
-    _attr_has_entity_name = True
+    _attr_has_entity_name: bool = True
+    _attr_device_class: SwitchDeviceClass = SwitchDeviceClass.SWITCH
+    _attr_entity_category: EntityCategory = EntityCategory.CONFIG
 
     def __init__(self,
                     coordinator: KoolnovaCoordinator, # pylint: disable=unused-argument
-                    device: Koolnova, # pylint: disable=unused-argument,
+                    device: Koolnova, # pylint: disable=unused-argument
                 ) -> None:
         super().__init__(coordinator)
         self._device = device
         self._attr_name = f"{device.name} Global HVAC State"
         self._attr_device_info = device.device_info
-        self._attr_unique_id = f"{DOMAIN}-Global-HVACState-switch"
-        self._is_on = bool(int(self._device.sys_state))
+        self._attr_unique_id = f"{DOMAIN}-Global-HVAC-State-switch"
+        self._attr_is_on = bool(int(self._device.sys_state))
+        if bool(int(self._device.sys_state)):
+            self._attr_state = STATE_ON
+        else:
+            self._attr_state = STATE_OFF
 
     async def async_turn_on(self, **kwargs):
         """ Turn the entity on. """
         _LOGGER.debug("Turn on system")
         await self._device.set_sys_state(SysState.SYS_STATE_ON)
-        self._is_on = True
+        self._attr_is_on = True
+        self._attr_state = STATE_ON
+        self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs):
         """ Turn the entity off. """
         _LOGGER.debug("Turn off system")
         await self._device.set_sys_state(SysState.SYS_STATE_OFF)
-        self._is_on = False
+        self._attr_is_on = False
+        self._attr_state = STATE_OFF
+        self.async_write_ha_state()
 
     @callback
     def _handle_coordinator_update(self) -> None:
         """ Handle updated data from the coordinator """
-        self._is_on = bool(int(self.coordinator.data['sys']))
+        self._attr_is_on = bool(int(self.coordinator.data['sys']))
+        _LOGGER.debug("[UPDATE] Switch State: {} - is_on ? {} - state ? {}".format(bool(int(self.coordinator.data['sys'])),
+                                                                    self._attr_is_on,
+                                                                    self._attr_state))
+        if bool(int(self.coordinator.data['sys'])):
+            self._attr_state = STATE_ON
+        else:
+            self._attr_state = STATE_OFF
+        self.async_write_ha_state()
 
     @property
-    def is_on(self):
-        """ If the switch is currently on or off. """
-        return self._is_on
+    def is_on(self) -> bool | None:
+        """Return True if entity is on."""
+        return bool(int(self._device.sys_state))
 
     @property
     def icon(self) -> str | None:

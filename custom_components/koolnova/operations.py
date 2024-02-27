@@ -62,13 +62,13 @@ class Operations:
         if debug:
             pymodbus_apply_logging_config("DEBUG")
 
-    async def __read_register(self, reg:int) -> (int, bool):
+    async def __async_read_register(self, reg:int) -> (int, bool):
         ''' Read one holding register (code 0x03) '''
         rr = None
         if not self._client.connected:
             raise ModbusConnexionError('Client Modbus not connected')
         try:
-            #_LOGGER.debug("reading holding register: {} - Addr: {}".format(hex(reg), self._addr))
+            _LOGGER.debug("reading holding register: {} - Addr: {}".format(hex(reg), self._addr))
             rr = await self._client.read_holding_registers(address=reg, count=1, slave=self._addr)
             if rr.isError():
                 _LOGGER.error("reading holding register error")
@@ -85,7 +85,7 @@ class Operations:
             return None, False
         return rr.registers[0], True
 
-    async def __read_registers(self, start_reg:int, count:int) -> (int, bool):
+    async def __async_read_registers(self, start_reg:int, count:int) -> (int, bool):
         ''' Read holding registers (code 0x03) '''
         rr = None
         if not self._client.connected:
@@ -107,14 +107,14 @@ class Operations:
             return None, False
         return rr.registers, True
 
-    async def __write_register(self, reg:int, val:int) -> bool:
+    async def __async_write_register(self, reg:int, val:int) -> bool:
         ''' Write one register (code 0x06) '''
         rq = None
         ret = True
         if not self._client.connected:
             raise ModbusConnexionError('Client Modbus not connected')
         try:
-            #_LOGGER.debug("writing single register: {} - Addr: {} - Val: {}".format(hex(reg), self._addr, hex(val)))
+            _LOGGER.debug("writing single register: {} - Addr: {} - Val: {}".format(hex(reg), self._addr, hex(val)))
             rq = await self._client.write_register(address=reg, value=val, slave=self._addr)
             if rq.isError():
                 _LOGGER.error("writing register error")
@@ -142,8 +142,8 @@ class Operations:
             self._client.close()
 
     async def discover_registered_zones(self) -> list:
-        ''' Discover all zones registered to the system '''
-        regs, ret = await self.__read_registers(start_reg=const.REG_START_ZONE, 
+        ''' Discover all areas registered to the system '''
+        regs, ret = await self.__async_read_registers(start_reg=const.REG_START_ZONE, 
                                                 count=const.NB_ZONE_MAX * const.NUM_REG_PER_ZONE)
         if not ret:
             raise ReadRegistersError("Read holding regsiter error")
@@ -179,7 +179,7 @@ class Operations:
         if zone_id > const.NB_ZONE_MAX or zone_id == 0:
             raise ZoneIdError('Zone Id must be between 1 to {}'.format(const.NB_ZONE_MAX))
         zone_dict = {}
-        regs, ret = await self.__read_registers(start_reg = const.REG_START_ZONE + (4 * (zone_id - 1)), 
+        regs, ret = await self.__async_read_registers(start_reg = const.REG_START_ZONE + (4 * (zone_id - 1)), 
                                                 count = const.NUM_REG_PER_ZONE)
         if not ret:
             raise ReadRegistersError("Error reading holding register")
@@ -199,7 +199,7 @@ class Operations:
         """ Get all areas values """
         _areas_dict:dict = {}
         # retreive all areas (registered and unregistered)
-        regs, ret = await self.__read_registers(start_reg = const.REG_START_ZONE, 
+        regs, ret = await self.__async_read_registers(start_reg = const.REG_START_ZONE, 
                                                 count = const.NUM_REG_PER_ZONE * const.NB_ZONE_MAX)
         if not ret:
             raise ReadRegistersError("Error reading holding register")
@@ -221,7 +221,7 @@ class Operations:
 
     async def system_status(self) -> (bool, const.SysState):
         ''' Read system status register '''
-        reg, ret = await self.__read_register(const.REG_SYS_STATE)
+        reg, ret = await self.__async_read_register(const.REG_SYS_STATE)
         if not ret:
             _LOGGER.error('Error retreive system status')
             reg = 0
@@ -231,14 +231,14 @@ class Operations:
                                 opt:const.SysState,
                                 ) -> bool:
         ''' Write system status '''
-        ret = await self.__write_register(reg = const.REG_SYS_STATE, val = int(opt))
+        ret = await self.__async_write_register(reg = const.REG_SYS_STATE, val = int(opt))
         if not ret:
             _LOGGER.error('Error writing system status')
         return ret
 
     async def global_mode(self) -> (bool, const.GlobalMode):
         ''' Read global mode '''
-        reg, ret = await self.__read_register(const.REG_GLOBAL_MODE)
+        reg, ret = await self.__async_read_register(const.REG_GLOBAL_MODE)
         if not ret:
             _LOGGER.error('Error retreive global mode')
             reg = 0
@@ -248,14 +248,14 @@ class Operations:
                                 opt:const.GlobalMode,
                                 ) -> bool:
         ''' Write global mode '''
-        ret = await self.__write_register(reg = const.REG_GLOBAL_MODE, val = int(opt))
+        ret = await self.__async_write_register(reg = const.REG_GLOBAL_MODE, val = int(opt))
         if not ret:
             _LOGGER.error('Error writing global mode')
         return ret
 
     async def efficiency(self) -> (bool, const.Efficiency):
         ''' read efficiency/speed '''
-        reg, ret = await self.__read_register(const.REG_EFFICIENCY)
+        reg, ret = await self.__async_read_register(const.REG_EFFICIENCY)
         if not ret:
             _LOGGER.error('Error retreive efficiency')
             reg = 0
@@ -265,7 +265,7 @@ class Operations:
                                 opt:const.GlobalMode,
                             ) -> bool:
         ''' Write efficiency '''
-        ret = await self.__write_register(reg = const.REG_EFFICIENCY, val = int(opt))
+        ret = await self.__async_write_register(reg = const.REG_EFFICIENCY, val = int(opt))
         if not ret:
             _LOGGER.error('Error writing efficiency')
         return ret
@@ -273,7 +273,7 @@ class Operations:
     async def engines_throughput(self) -> (bool, list):
         ''' read engines throughput AC1, AC2, AC3, AC4 '''
         engines_lst = []
-        regs, ret = await self.__read_registers(const.REG_START_FLOW_ENGINE,
+        regs, ret = await self.__async_read_registers(const.REG_START_FLOW_ENGINE,
                                                 const.NUM_OF_ENGINES)
         if ret:
             for idx, reg in enumerate(regs):
@@ -288,7 +288,7 @@ class Operations:
         ''' read engine throughput specified by id '''
         if engine_id < 1 or engine_id > 4:
             raise UnitIdError("engine Id must be between 1 and 4")
-        reg, ret = await self.__read_register(const.REG_START_FLOW_ENGINE + (engine_id - 1))
+        reg, ret = await self.__async_read_register(const.REG_START_FLOW_ENGINE + (engine_id - 1))
         if not ret:
             _LOGGER.error('Error retreive engine throughput for id:{}'.format(engine_id))
             reg = 0
@@ -299,7 +299,7 @@ class Operations:
                             ) -> (bool, const.FlowEngine):
         if engine_id < 1 or engine_id > 4:
             raise UnitIdError("Engine id must be between 1 and 4")
-        reg, ret = await self.__read_register(const.REG_START_FLOW_STATE_ENGINE + (engine_id - 1))
+        reg, ret = await self.__async_read_register(const.REG_START_FLOW_STATE_ENGINE + (engine_id - 1))
         if not ret:
             _LOGGER.error('Error retreive engine state for id:{}'.format(engine_id))
             reg = 0
@@ -310,7 +310,7 @@ class Operations:
                                 ) -> (bool, float):
         if engine_id < 1 or engine_id > 4:
             raise UnitIdError("Engine id must be between 1 and 4")
-        reg, ret = await self.__read_register(const.REG_START_ORDER_TEMP + (engine_id - 1))
+        reg, ret = await self.__async_read_register(const.REG_START_ORDER_TEMP + (engine_id - 1))
         if not ret:
             _LOGGER.error('Error retreive engine order temp for id:{}'.format(engine_id))
             reg = 0
@@ -319,7 +319,7 @@ class Operations:
     async def engine_orders_temp(self) -> (bool, list):
         ''' read orders temperature for engines : AC1, AC2, AC3, AC4 '''
         engines_lst = []
-        regs, ret = await self.__read_registers(const.REG_START_ORDER_TEMP, const.NUM_OF_ENGINES)
+        regs, ret = await self.__async_read_registers(const.REG_START_ORDER_TEMP, const.NUM_OF_ENGINES)
         if ret:
             for idx, reg in enumerate(regs):
                 engines_lst.append(reg/2)
@@ -337,7 +337,7 @@ class Operations:
         if val > const.MAX_TEMP_ORDER or val < const.MIN_TEMP_ORDER:
             _LOGGER.error('Order Temperature must be between {} and {}'.format(const.MIN_TEMP_ORDER, const.MAX_TEMP_ORDER))
             return False
-        ret = await self.__write_register(reg = const.REG_START_ZONE + (4 * (zone_id - 1)) + const.REG_TEMP_ORDER, val = int(val * 2))
+        ret = await self.__async_write_register(reg = const.REG_START_ZONE + (4 * (zone_id - 1)) + const.REG_TEMP_ORDER, val = int(val * 2))
         if not ret:
             _LOGGER.error('Error writing area order temperature')
 
@@ -347,7 +347,7 @@ class Operations:
                         id_zone:int = 0,
                         ) -> (bool, float):
         """ get temperature of specific area id """
-        reg, ret = await self.__read_register(reg = const.REG_START_ZONE + (4 * (id_zone - 1)) + const.REG_TEMP_REAL)
+        reg, ret = await self.__async_read_register(reg = const.REG_START_ZONE + (4 * (id_zone - 1)) + const.REG_TEMP_REAL)
         if not ret:
             _LOGGER.error('Error retreive area real temp')
             reg = 0
@@ -357,7 +357,7 @@ class Operations:
                                 id_zone:int = 0,
                                 ) -> (bool, float):
         """ get target temperature of specific area id """
-        reg, ret = await self.__read_register(reg = const.REG_START_ZONE + (4 * (id_zone - 1)) + const.REG_TEMP_ORDER)
+        reg, ret = await self.__async_read_register(reg = const.REG_START_ZONE + (4 * (id_zone - 1)) + const.REG_TEMP_ORDER)
         if not ret:
             _LOGGER.error('Error retreive area target temp')
             reg = 0
@@ -367,7 +367,7 @@ class Operations:
                                         id_zone:int = 0,
                                     ) -> (bool, const.ZoneFanMode, const.ZoneClimMode):
         """ get climate and fan mode of specific area id """
-        reg, ret = await self.__read_register(reg = const.REG_START_ZONE + (4 * (id_zone - 1)) + const.REG_STATE_AND_FLOW)
+        reg, ret = await self.__async_read_register(reg = const.REG_START_ZONE + (4 * (id_zone - 1)) + const.REG_STATE_AND_FLOW)
         if not ret:
             _LOGGER.error('Error retreive area fan and climate values')
             reg = 0
@@ -377,7 +377,7 @@ class Operations:
                                         id_zone:int = 0,
                                     ) -> (bool, const.ZoneRegister, const.ZoneState):
         """ get area state and register """
-        reg, ret = await self.__read_register(reg = const.REG_START_ZONE + (4 * (id_zone - 1)) + const.REG_LOCK_ZONE)
+        reg, ret = await self.__async_read_register(reg = const.REG_START_ZONE + (4 * (id_zone - 1)) + const.REG_LOCK_ZONE)
         if not ret:
             _LOGGER.error('Error retreive area register value')
             reg = 0
@@ -397,7 +397,7 @@ class Operations:
             _LOGGER.error("Error reading state and register mode")
             return ret
         #_LOGGER.debug("register & state: {}".format(hex((int(register) << 1) | (int(val) & 0b01))))
-        ret = await self.__write_register(reg = const.REG_START_ZONE + (4 * (id_zone - 1)) + const.REG_LOCK_ZONE,
+        ret = await self.__async_write_register(reg = const.REG_START_ZONE + (4 * (id_zone - 1)) + const.REG_LOCK_ZONE,
                                             val = int(int(register) << 1) | (int(val) & 0b01))
         if not ret:
             _LOGGER.error('Error writing area state value')
@@ -418,7 +418,7 @@ class Operations:
             _LOGGER.error("Error reading fan and clim mode")
             return ret
         #_LOGGER.debug("Fan & Clim: {}".format(hex((int(fan) << 4) | (int(val) & 0x0F))))
-        ret = await self.__write_register(reg = const.REG_START_ZONE + (4 * (id_zone - 1)) + const.REG_STATE_AND_FLOW,
+        ret = await self.__async_write_register(reg = const.REG_START_ZONE + (4 * (id_zone - 1)) + const.REG_STATE_AND_FLOW,
                                             val = int(int(fan) << 4) | (int(val) & 0x0F))
         if not ret:
             _LOGGER.error('Error writing area climate mode')
@@ -439,7 +439,7 @@ class Operations:
             _LOGGER.error("Error reading fan and clim mode")
             return ret
         #_LOGGER.debug("Fan & Clim: {}".format(hex((int(val) << 4) | (int(clim) & 0x0F))))
-        ret = await self.__write_register(reg = const.REG_START_ZONE + (4 * (id_zone - 1)) + const.REG_STATE_AND_FLOW,
+        ret = await self.__async_write_register(reg = const.REG_START_ZONE + (4 * (id_zone - 1)) + const.REG_STATE_AND_FLOW,
                                             val = int(int(val) << 4) | (int(clim) & 0x0F))
         if not ret:
             _LOGGER.error('Error writing area fan mode')

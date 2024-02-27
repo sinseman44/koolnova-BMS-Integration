@@ -6,6 +6,7 @@ import logging
 from homeassistant.core import HomeAssistant, callback, Event, State
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.components.select import SelectEntity
 from homeassistant.util import Throttle
 from homeassistant.const import UnitOfTime
@@ -15,7 +16,6 @@ from homeassistant.helpers.update_coordinator import (
 
 from .const import (
     DOMAIN,
-    MIN_TIME_BETWEEN_UPDATES,
     GLOBAL_MODES,
     GLOBAL_MODE_TRANSLATION,
     EFF_MODES,
@@ -50,6 +50,8 @@ async def async_setup_entry(hass: HomeAssistant,
 class GlobalModeSelect(CoordinatorEntity, SelectEntity):
     """ Select component to set global HVAC mode """
 
+    _attr_entity_category: EntityCategory = EntityCategory.CONFIG
+
     def __init__(self,
                     coordinator: KoolnovaCoordinator, # pylint: disable=unused-argument
                     device: Koolnova, # pylint: disable=unused-argument,
@@ -83,12 +85,16 @@ class GlobalModeSelect(CoordinatorEntity, SelectEntity):
     def _handle_coordinator_update(self) -> None:
         """ Handle updated data from the coordinator 
             Retrieve latest state of global mode """
+        _LOGGER.debug("[UPDATE] Global Mode: {}".format(self.coordinator.data['glob']))
         self.select_option(
             GLOBAL_MODE_TRANSLATION[int(self.coordinator.data['glob'])]
         )
+        self.async_write_ha_state()
 
 class EfficiencySelect(CoordinatorEntity, SelectEntity):
     """Select component to set global efficiency """
+
+    _attr_entity_category: EntityCategory = EntityCategory.CONFIG
 
     def __init__(self,
                     coordinator: KoolnovaCoordinator, # pylint: disable=unused-argument
@@ -128,6 +134,8 @@ class EfficiencySelect(CoordinatorEntity, SelectEntity):
     def _handle_coordinator_update(self) -> None:
         """ Handle updated data from the coordinator
             Retrieve latest state of global efficiency """
+        _LOGGER.debug("[UPDATE] Efficiency: {}".format(self.coordinator.data['eff']))
         self.select_option(
             EFF_TRANSLATION[int(self.coordinator.data['eff'])]
         )
+        self.async_write_ha_state()

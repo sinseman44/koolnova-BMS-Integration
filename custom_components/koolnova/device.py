@@ -500,6 +500,7 @@ class Koolnova:
         ''' Set System State '''
         if not isinstance(val, const.SysState):
             raise AssertionError('Input variable must be Enum SysState')
+        _LOGGER.debug("set system state : {}".format(val))
         ret = await self._client.set_system_status(val)
         if not ret:
             _LOGGER.error("[SYS_STATE] Error writing {} to modbus".format(val))

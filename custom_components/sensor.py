@@ -148,6 +148,7 @@ class DiagEngineThroughputSensor(CoordinatorEntity, SensorEntity):
         """ Handle updated data from the coordinator """
         for _cur_engine in self.coordinator.data['engines']:
             if self._engine.engine_id == _cur_engine.engine_id:
+                _LOGGER.debug("[UPDATE] [ENGINE AC{}] Troughput: {}".format(_cur_engine.engine_id, _cur_engine.throughput))
                 self._attr_native_value = "{}".format(_cur_engine.throughput)
         self.async_write_ha_state()
 
@@ -182,5 +183,6 @@ class DiagEngineTempOrderSensor(CoordinatorEntity, SensorEntity):
         """ Handle updated data from the coordinator """
         for _cur_engine in self.coordinator.data['engines']:
             if self._engine.engine_id == _cur_engine.engine_id:
+                _LOGGER.debug("[UPDATE] [ENGINE AC{}] Order temp: {}".format(_cur_engine.engine_id, _cur_engine.order_temp))
                 self._attr_native_value = "{}".format(_cur_engine.order_temp)
         self.async_write_ha_state()

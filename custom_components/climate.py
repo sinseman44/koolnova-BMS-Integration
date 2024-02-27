@@ -164,7 +164,7 @@ class AreaClimateEntity(CoordinatorEntity, ClimateEntity):
         """ Handle updated data from the coordinator """
         for _cur_area in self.coordinator.data['areas']:
             if _cur_area.id_zone == self._area.id_zone:
-                _LOGGER.debug("[Climate {}] temp:{} - target:{} - state: {} - hvac:{} - fan:{}".format(_cur_area.id_zone,
+                _LOGGER.debug("[UPDATE] [Climate {}] temp:{} - target:{} - state: {} - hvac:{} - fan:{}".format(_cur_area.id_zone,
                                                                                                         _cur_area.real_temp,
                                                                                                         _cur_area.order_temp,
                                                                                                         _cur_area.state,

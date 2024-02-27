@@ -29,7 +29,6 @@ async def async_setup_entry(hass: HomeAssistant,
     stopbits: int = entry.data['Stopbits']
     timeout: int = entry.data['Timeout']
     
-    #_LOGGER.debug("Appel de async_setup_entry - entry: entry_id={}, data={}".format(entry.entry_id, entry.data))
     try:
         device = Koolnova(name, port, addr, baudrate, parity, bytesize, stopbits, timeout)
         # connect to modbus client
@@ -37,7 +36,7 @@ async def async_setup_entry(hass: HomeAssistant,
         # update attributes
         await device.update()
         # record each area in device
-        #_LOGGER.debug("Koolnova areas: {}".format(entry.data['areas']))
+        _LOGGER.debug("Koolnova areas: {}".format(entry.data['areas']))
         for area in entry.data['areas']:
             await device.add_manual_registered_zone(name=area['Name'], 
                                                     id_zone=area['Area_id'])
