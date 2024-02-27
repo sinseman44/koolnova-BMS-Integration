@@ -35,7 +35,7 @@ class KoolnovaCoordinator(DataUpdateCoordinator):
             _LOGGER,
             # Name of the data. For logging purposes.
             name=DOMAIN,
-            update_method=device.update_all_areas,
+            update_method=device.async_update_all_areas,
             # Polling interval. Will only be polled if there are subscribers.
             update_interval=timedelta(seconds=30),
         )

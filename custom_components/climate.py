@@ -121,7 +121,7 @@ class AreaClimateEntity(CoordinatorEntity, ClimateEntity):
         _LOGGER.debug("[Climate {}] set target temp - kwargs: {}".format(self._area.id_zone, kwargs))
         if "temperature" in kwargs:
             target_temp = kwargs.get("temperature")
-            ret = await self._device.set_area_target_temp(zone_id = self._area.id_zone, temp = target_temp)
+            ret = await self._device.async_set_area_target_temp(zone_id = self._area.id_zone, temp = target_temp)
             if not ret:
                 _LOGGER.error("Error sending target temperature for area id {}".format(self._area.id_zone))
         else:
@@ -137,8 +137,8 @@ class AreaClimateEntity(CoordinatorEntity, ClimateEntity):
             if v == fan_mode:
                 opt = k
                 break
-        ret = await self._device.set_area_fan_mode(zone_id = self._area.id_zone,
-                                                    mode = ZoneFanMode(opt))
+        ret = await self._device.async_set_area_fan_mode(zone_id = self._area.id_zone,
+                                                            mode = ZoneFanMode(opt))
         if not ret:
             _LOGGER.exception("Error setting new fan value for area id {}".format(self._area.id_zone))
         await self.coordinator.async_request_refresh()
@@ -153,8 +153,8 @@ class AreaClimateEntity(CoordinatorEntity, ClimateEntity):
             if v == hvac_mode:
                 opt = k
                 break
-        ret = await self._device.set_area_clim_mode(zone_id = self._area.id_zone, 
-                                                    mode = ZoneClimMode(opt))
+        ret = await self._device.async_set_area_clim_mode(zone_id = self._area.id_zone, 
+                                                            mode = ZoneClimMode(opt))
         if not ret:
             _LOGGER.exception("Error setting new hvac value for area id {}".format(self._area.id_zone))
         await self.coordinator.async_request_refresh()

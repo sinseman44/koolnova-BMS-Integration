@@ -63,11 +63,11 @@ class GlobalModeSelect(CoordinatorEntity, SelectEntity):
         self._attr_device_info = device.device_info
         self._attr_icon = "mdi:cog-clockwise"
         self._attr_unique_id = f"{DOMAIN}-Global-HVACMode-select"
-        self.select_option(
+        self.__select_option(
             GLOBAL_MODE_TRANSLATION[int(self._device.global_mode)]
         )
 
-    def select_option(self, option: str) -> None:
+    def __select_option(self, option: str) -> None:
         """ Change the selected option. """
         self._attr_current_option = option
 
@@ -78,15 +78,16 @@ class GlobalModeSelect(CoordinatorEntity, SelectEntity):
             if v == option:
                 opt = k
                 break
-        await self._device.set_global_mode(GlobalMode(opt))
-        self.select_option(option)
+        await self._device.async_set_global_mode(GlobalMode(opt))
+        self.__select_option(option)
+        await self.coordinator.async_request_refresh()
 
     @callback
     def _handle_coordinator_update(self) -> None:
         """ Handle updated data from the coordinator 
             Retrieve latest state of global mode """
         _LOGGER.debug("[UPDATE] Global Mode: {}".format(self.coordinator.data['glob']))
-        self.select_option(
+        self.__select_option(
             GLOBAL_MODE_TRANSLATION[int(self.coordinator.data['glob'])]
         )
         self.async_write_ha_state()
@@ -107,11 +108,11 @@ class EfficiencySelect(CoordinatorEntity, SelectEntity):
         self._attr_device_info = device.device_info
         self._attr_icon = "mdi:wind-power-outline"
         self._attr_unique_id = f"{DOMAIN}-Global-HVACEff-select"
-        self.select_option(
+        self.__select_option(
             EFF_TRANSLATION[int(self._device.efficiency)]
         )
 
-    def select_option(self,
+    def __select_option(self,
                         option: str,
                         ) -> None:
         """ Change the selected option. """
@@ -127,15 +128,16 @@ class EfficiencySelect(CoordinatorEntity, SelectEntity):
             if v == option:
                 opt = k
                 break
-        await self._device.set_efficiency(Efficiency(opt))
-        self.select_option(option)
+        await self._device.async_set_efficiency(Efficiency(opt))
+        self.__select_option(option)
+        await self.coordinator.async_request_refresh()
 
     @callback
     def _handle_coordinator_update(self) -> None:
         """ Handle updated data from the coordinator
             Retrieve latest state of global efficiency """
         _LOGGER.debug("[UPDATE] Efficiency: {}".format(self.coordinator.data['eff']))
-        self.select_option(
+        self.__select_option(
             EFF_TRANSLATION[int(self.coordinator.data['eff'])]
         )
         self.async_write_ha_state()

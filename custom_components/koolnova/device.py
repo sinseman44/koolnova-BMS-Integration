@@ -260,22 +260,22 @@ class Koolnova:
             _LOGGER.debug("idx found: {}".format(_idx))
         return True, _idx
 
-    async def update(self) -> bool:
+    async def async_update(self) -> bool:
         ''' update values from modbus '''
         _LOGGER.debug("Retreive system status ...")
-        ret, self._sys_state = await self._client.system_status()
+        ret, self._sys_state = await self._client.async_system_status()
         if not ret:
             _LOGGER.error("Error retreiving system status")
             self._sys_state = const.SysState.SYS_STATE_OFF
 
         _LOGGER.debug("Retreive global mode ...")
-        ret, self._global_mode = await self._client.global_mode()
+        ret, self._global_mode = await self._client.async_global_mode()
         if not ret:
             _LOGGER.error("Error retreiving global mode")
             self._global_mode = const.GlobalMode.COLD
 
         _LOGGER.debug("Retreive efficiency ...")
-        ret, self._efficiency = await self._client.efficiency()
+        ret, self._efficiency = await self._client.async_efficiency()
         if not ret:
             _LOGGER.error("Error retreiving efficiency")
             self._efficiency = const.Efficiency.LOWER_EFF
@@ -285,17 +285,17 @@ class Koolnova:
         _LOGGER.debug("Retreive engines ...")
         for idx in range(1, const.NUM_OF_ENGINES + 1):
             engine = Engine(engine_id = idx)
-            ret, engine.throughput = await self._client.engine_throughput(engine_id = idx)
-            ret, engine.state = await self._client.engine_state(engine_id = idx)
-            ret, engine.order_temp = await self._client.engine_order_temp(engine_id = idx)
+            ret, engine.throughput = await self._client.async_engine_throughput(engine_id = idx)
+            ret, engine.state = await self._client.async_engine_state(engine_id = idx)
+            ret, engine.order_temp = await self._client.async_engine_order_temp(engine_id = idx)
             self._engines.append(engine)
             await asyncio.sleep(0.1)
         return True
 
-    async def connect(self) -> bool:
+    async def async_connect(self) -> bool:
         ''' connect to the modbus serial server '''
         ret = True
-        await self._client.connect()
+        await self._client.async_connect()
         if not self.connected():
             ret = False
             raise ClientNotConnectedError("Client Modbus connexion error")
@@ -313,11 +313,11 @@ class Koolnova:
         ''' close the underlying socket connection '''
         self._client.disconnect()
 
-    async def discover_zones(self) -> None:
-        ''' Set all registered zones for system '''
+    async def async_discover_areas(self) -> None:
+        ''' Set all registered areas for system '''
         if not self._client.connected:
             raise ModbusConnexionError('Client Modbus not connected')
-        zones_lst = await self._client.discover_registered_zones()
+        zones_lst = await self._client.async_discover_registered_areas()
         for zone in zones_lst:
             self._areas.append(Area(name = zone['name'],
                                     id_zone = zone['id'],
@@ -330,14 +330,14 @@ class Koolnova:
                                     ))
         return
 
-    async def add_manual_registered_zone(self,
-                                            name:str = "",
-                                            id_zone:int = 0) -> bool:
-        ''' Add zone manually to koolnova System '''
+    async def async_add_manual_registered_area(self,
+                                                name:str = "",
+                                                id_zone:int = 0) -> bool:
+        ''' Add manual area to koolnova system '''
         if not self._client.connected:
             raise ModbusConnexionError('Client Modbus not connected')
 
-        ret, zone_dict = await self._client.zone_registered(zone_id = id_zone)
+        ret, zone_dict = await self._client.async_area_registered(zone_id = id_zone)
         if not ret:
             _LOGGER.error("Zone with ID: {} is not registered".format(id_zone))
             return False
@@ -367,9 +367,9 @@ class Koolnova:
         ''' get specific area '''
         return self._areas[zone_id - 1]
 
-    async def update_area(self, zone_id:int = 0) -> bool:
+    async def async_update_area(self, zone_id:int = 0) -> bool:
         """ update specific area from zone_id """
-        ret, infos = await self._client.zone_registered(zone_id = zone_id)
+        ret, infos = await self._client.async_area_registered(zone_id = zone_id)
         if not ret:
             _LOGGER.error("Error retreiving area ({}) values".format(zone_id))
             return ret, None
@@ -385,10 +385,10 @@ class Koolnova:
                     break
         return ret, self._areas[zone_id - 1]
 
-    async def update_all_areas(self) -> list:
+    async def async_update_all_areas(self) -> list:
         """ update all areas registered and all engines values """
         ##### Areas
-        _ret, _vals = await self._client.areas_registered()
+        _ret, _vals = await self._client.async_areas_registered()
         if not _ret:
             _LOGGER.error("Error retreiving areas values")
             return None
@@ -406,24 +406,24 @@ class Koolnova:
 
         ##### Engines
         for _idx in range(1, const.NUM_OF_ENGINES + 1):
-            ret, self._engines[_idx - 1].throughput = await self._client.engine_throughput(engine_id = _idx)
-            ret, self._engines[_idx - 1].state = await self._client.engine_state(engine_id = _idx)
-            ret, self._engines[_idx - 1].order_temp = await self._client.engine_order_temp(engine_id = _idx)
+            ret, self._engines[_idx - 1].throughput = await self._client.async_engine_throughput(engine_id = _idx)
+            ret, self._engines[_idx - 1].state = await self._client.async_engine_state(engine_id = _idx)
+            ret, self._engines[_idx - 1].order_temp = await self._client.async_engine_order_temp(engine_id = _idx)
 
         ##### Global mode
-        ret, self._global_mode = await self._client.global_mode()
+        ret, self._global_mode = await self._client.async_global_mode()
         if not ret:
             _LOGGER.error("Error retreiving global mode")
             self._global_mode = const.GlobalMode.COLD
 
         ##### Efficiency
-        ret, self._efficiency = await self._client.efficiency()
+        ret, self._efficiency = await self._client.async_efficiency()
         if not ret:
             _LOGGER.error("Error retreiving efficiency")
             self._efficiency = const.Efficiency.LOWER_EFF
 
         ##### Sys state
-        ret, self._sys_state = await self._client.system_status()
+        ret, self._sys_state = await self._client.async_system_status()
         if not ret:
             _LOGGER.error("Error retreiving system status")
             self._sys_state = const.SysState.SYS_STATE_OFF
@@ -458,14 +458,14 @@ class Koolnova:
         ''' Get Global Mode '''
         return self._global_mode
 
-    async def set_global_mode(self,
+    async def async_set_global_mode(self,
                                 val:const.GlobalMode,
                                 ) -> None:
         ''' Set Global Mode '''
         _LOGGER.debug("set global mode : {}".format(val))
         if not isinstance(val, const.GlobalMode):
             raise AssertionError('Input variable must be Enum GlobalMode')
-        ret = await self._client.set_global_mode(val)
+        ret = await self._client.async_set_global_mode(val)
         if not ret:
             _LOGGER.error("[GLOBAL] Error writing {} to modbus".format(val))
             raise UpdateValueError('Error writing to modbus updated value')
@@ -476,14 +476,14 @@ class Koolnova:
         ''' Get Efficiency '''
         return self._efficiency
 
-    async def set_efficiency(self,
-                                val:const.Efficiency,
-                            ) -> None:
+    async def async_set_efficiency(self,
+                                    val:const.Efficiency,
+                                    ) -> None:
         ''' Set Efficiency '''
         _LOGGER.debug("set efficiency : {}".format(val))
         if not isinstance(val, const.Efficiency):
             raise AssertionError('Input variable must be Enum Efficiency')
-        ret = await self._client.set_efficiency(val)
+        ret = await self._client.async_set_efficiency(val)
         if not ret:
             _LOGGER.error("[EFF] Error writing {} to modbus".format(val))
             raise UpdateValueError('Error writing to modbus updated value')    
@@ -494,72 +494,72 @@ class Koolnova:
         ''' Get System State '''
         return self._sys_state
 
-    async def set_sys_state(self,
-                            val:const.SysState,
-                            ) -> None:
+    async def async_set_sys_state(self,
+                                    val:const.SysState,
+                                    ) -> None:
         ''' Set System State '''
         if not isinstance(val, const.SysState):
             raise AssertionError('Input variable must be Enum SysState')
         _LOGGER.debug("set system state : {}".format(val))
-        ret = await self._client.set_system_status(val)
+        ret = await self._client.async_set_system_status(val)
         if not ret:
             _LOGGER.error("[SYS_STATE] Error writing {} to modbus".format(val))
             raise UpdateValueError('Error writing to modbus updated value') 
         self._sys_state = val
 
-    async def get_area_temp(self,
-                            zone_id:int,
-                            ) -> float:
+    async def async_get_area_temp(self,
+                                    zone_id:int,
+                                ) -> float:
         """ get current temp of specific Area """
         _ret, _idx = self._area_defined(id_search = zone_id)
         if not _ret:
             _LOGGER.error("Area not defined ...")
             return False
 
-        ret, temp = await self._client.area_temp(id_zone = zone_id)
+        ret, temp = await self._client.async_area_temp(id_zone = zone_id)
         if not ret:
             _LOGGER.error("Error reading temp for area with ID: {}".format(zone_id))
             return False
         self._areas[_idx].real_temp = temp
         return temp
 
-    async def set_area_target_temp(self,
-                                    zone_id:int,
-                                    temp:float,
-                                    ) -> bool:
+    async def async_set_area_target_temp(self,
+                                        zone_id:int,
+                                        temp:float,
+                                        ) -> bool:
         """ set target temp of specific area """
         _ret, _idx = self._area_defined(id_search = zone_id)
         if not _ret:
             _LOGGER.error("Area not defined ...")
             return False
 
-        ret = await self._client.set_area_target_temp(zone_id = zone_id, val = temp)
+        ret = await self._client.async_set_area_target_temp(zone_id = zone_id, val = temp)
         if not ret:
             _LOGGER.error("Error writing target temp for area with ID: {}".format(zone_id))
             return False
         self._areas[_idx].order_temp = temp
         return True
 
-    async def get_area_target_temp(self,
-                                    zone_id:int,
-                                    ) -> float:
+    async def async_get_area_target_temp(self,
+                                        zone_id:int,
+                                        ) -> float:
         """ get target temp of specific area """
         _ret, _idx = self._area_defined(id_search = zone_id)
         if not _ret:
             _LOGGER.error("Area not defined ...")
             return False
 
-        ret, temp = await self._client.area_target_temp(id_zone = zone_id)
+        ret, temp = await self._client.async_area_target_temp(id_zone = zone_id)
         if not ret:
             _LOGGER.error("Error reading target temp for area with ID: {}".format(zone_id))
             return 0.0
         self._areas[_idx].order_temp = temp
         return temp
 
-    async def set_area_clim_mode(self,
-                                    zone_id:int, 
-                                    mode:const.ZoneClimMode,
-                                    ) -> bool:
+    async def async_set_area_clim_mode(self,
+                                        zone_id:int, 
+                                        mode:const.ZoneClimMode,
+                                        ) -> bool:
         """ set climate mode for specific area """
         _ret, _idx = self._area_defined(id_search = zone_id)
         if not _ret:
@@ -568,7 +568,7 @@ class Koolnova:
 
         if mode == const.ZoneClimMode.OFF:
             _LOGGER.debug("Set area state to OFF")
-            ret = await self._client.set_area_state(id_zone = zone_id, val = const.ZoneState.STATE_OFF)
+            ret = await self._client.async_set_area_state(id_zone = zone_id, val = const.ZoneState.STATE_OFF)
             if not ret:
                 _LOGGER.error("Error writing area state for area with ID: {}".format(zone_id))
                 return False
@@ -577,23 +577,23 @@ class Koolnova:
             if self._areas[_idx].state == const.ZoneState.STATE_OFF:
                 _LOGGER.debug("Set area state to ON")
                 # update area state
-                ret = await self._client.set_area_state(id_zone = zone_id, val = const.ZoneState.STATE_ON)
+                ret = await self._client.async_set_area_state(id_zone = zone_id, val = const.ZoneState.STATE_ON)
                 if not ret:
                     _LOGGER.error("Error writing area state for area with ID: {}".format(zone_id))
                     return False
             _LOGGER.debug("clim mode ? {}".format(mode))
             # update clim mode
-            ret = await self._client.set_area_clim_mode(id_zone = zone_id, val = mode)
+            ret = await self._client.async_set_area_clim_mode(id_zone = zone_id, val = mode)
             if not ret:
                 _LOGGER.error("Error writing climate mode for area with ID: {}".format(zone_id))
                 return False
             self._areas[_idx].clim_mode = mode
         return True
 
-    async def set_area_fan_mode(self,
-                                zone_id:int, 
-                                mode:const.ZoneFanMode,
-                                ) -> bool:
+    async def async_set_area_fan_mode(self,
+                                        zone_id:int, 
+                                        mode:const.ZoneFanMode,
+                                        ) -> bool:
         """ set fan mode for specific area """
         # test if area id is defined
         _ret, _idx = self._area_defined(id_search = zone_id)
@@ -607,7 +607,7 @@ class Koolnova:
         else:
             _LOGGER.debug("fan mode ? {}".format(mode))
             # writing new value to modbus
-            ret = await self._client.set_area_fan_mode(id_zone = zone_id, val = mode)
+            ret = await self._client.async_set_area_fan_mode(id_zone = zone_id, val = mode)
             if not ret:
                 _LOGGER.error("Error writing fan mode for area with ID: {}".format(zone_id))
                 return False

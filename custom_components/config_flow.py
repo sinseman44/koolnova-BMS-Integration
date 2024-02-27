@@ -70,11 +70,11 @@ class TestVBE4ConfigFlow(ConfigFlow, domain=DOMAIN):
                                     timeout=self._user_inputs["Timeout"],
                                     debug=self._user_inputs["Debug"])
             try:
-                await self._conn.connect()
+                await self._conn.async_connect()
                 if not self._conn.connected():
                     raise CannotConnectError(reason="Client Modbus not connected")
                 #_LOGGER.debug("test communication with koolnova system")
-                ret, _ = await self._conn.system_status()
+                ret, _ = await self._conn.async_system_status()
                 if not ret:
                     self._conn.disconnect()
                     raise CannotConnectError(reason="Communication error")
@@ -124,12 +124,12 @@ class TestVBE4ConfigFlow(ConfigFlow, domain=DOMAIN):
                 if not user_input['Other_area']:
                     try:
                         if not self._conn.connected():
-                            await self._conn.connect()
+                            await self._conn.async_connect()
                         if user_input['Area_id'] > NB_ZONE_MAX:
                             raise ZoneIdError(reason="Area_id must be between 1 and 16")
                         #_LOGGER.debug("test area registered with id: {}".format(user_input['Area_id']))
                         # test if area is configured into koolnova system 
-                        ret, _ = await self._conn.zone_registered(user_input["Area_id"])
+                        ret, _ = await self._conn.async_area_registered(user_input["Area_id"])
                         if not ret:
                             self._conn.disconnect()
                             raise AreaNotRegistredError(reason="Area Id is not registred")

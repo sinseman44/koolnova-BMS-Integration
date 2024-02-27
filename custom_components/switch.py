@@ -73,18 +73,18 @@ class SystemStateSwitch(CoordinatorEntity, SwitchEntity):
     async def async_turn_on(self, **kwargs):
         """ Turn the entity on. """
         _LOGGER.debug("Turn on system")
-        await self._device.set_sys_state(SysState.SYS_STATE_ON)
+        await self._device.async_set_sys_state(SysState.SYS_STATE_ON)
         self._attr_is_on = True
         self._attr_state = STATE_ON
-        self.async_write_ha_state()
+        await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs):
         """ Turn the entity off. """
         _LOGGER.debug("Turn off system")
-        await self._device.set_sys_state(SysState.SYS_STATE_OFF)
+        await self._device.async_set_sys_state(SysState.SYS_STATE_OFF)
         self._attr_is_on = False
         self._attr_state = STATE_OFF
-        self.async_write_ha_state()
+        await self.coordinator.async_request_refresh()
 
     @callback
     def _handle_coordinator_update(self) -> None:
