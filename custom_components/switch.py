@@ -90,9 +90,7 @@ class SystemStateSwitch(CoordinatorEntity, SwitchEntity):
     def _handle_coordinator_update(self) -> None:
         """ Handle updated data from the coordinator """
         self._attr_is_on = bool(int(self.coordinator.data['sys']))
-        _LOGGER.debug("[UPDATE] Switch State: {} - is_on ? {} - state ? {}".format(bool(int(self.coordinator.data['sys'])),
-                                                                    self._attr_is_on,
-                                                                    self._attr_state))
+        _LOGGER.debug("[UPDATE] Switch State: {}".format(bool(int(self.coordinator.data['sys']))))
         if bool(int(self.coordinator.data['sys'])):
             self._attr_state = STATE_ON
         else:

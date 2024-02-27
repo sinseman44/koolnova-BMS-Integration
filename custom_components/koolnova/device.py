@@ -453,14 +453,28 @@ class Koolnova:
         ''' Get name '''
         return self._name
 
+    async def async_set_engine_state(self,
+                                    val:const.FlowEngine,
+                                    engine_id: int,
+                                    ) -> None:
+        ''' set engine flow from id '''
+        _LOGGER.debug("set engine (id:{}) flow : {}".format(engine_id, val))
+        if not isinstance(val, const.FlowEngine):
+            raise AssertionError('Input variable must be Enum FlowEngine')
+        ret = await self._client.async_set_engine_state(engine_id, val)
+        if not ret:
+            _LOGGER.error("[GLOBAL] Error writing {} to modbus".format(val))
+            raise UpdateValueError('Error writing to modbus updated value')
+        self._engines[engine_id - 1].state = val
+
     @property
     def global_mode(self) -> const.GlobalMode:
         ''' Get Global Mode '''
         return self._global_mode
 
     async def async_set_global_mode(self,
-                                val:const.GlobalMode,
-                                ) -> None:
+                                    val:const.GlobalMode,
+                                    ) -> None:
         ''' Set Global Mode '''
         _LOGGER.debug("set global mode : {}".format(val))
         if not isinstance(val, const.GlobalMode):

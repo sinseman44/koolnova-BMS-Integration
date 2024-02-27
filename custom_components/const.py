@@ -15,6 +15,7 @@ from homeassistant.components.climate.const import (
 from .koolnova.const import (
     GlobalMode,
     Efficiency,
+    FlowEngine,
     ZoneClimMode,
     ZoneFanMode,
     ZoneState,
@@ -75,6 +76,25 @@ EFF_MODES = [
     EFF_POS_3,
     EFF_POS_4,
     EFF_POS_5,
+]
+
+ENGINE_FLOW_POS_1 = "Manual minimum"
+ENGINE_FLOW_POS_2 = "Manual medium"
+ENGINE_FLOW_POS_3 = "Manual High"
+ENGINE_FLOW_POS_4 = "Auto"
+
+ENGINE_FLOW_TRANSLATION = {
+    int(FlowEngine.MANUAL_MIN): ENGINE_FLOW_POS_1,
+    int(FlowEngine.MANUAL_MED): ENGINE_FLOW_POS_2,
+    int(FlowEngine.MANUAL_HIGH): ENGINE_FLOW_POS_3,
+    int(FlowEngine.AUTO): ENGINE_FLOW_POS_4,
+}
+
+ENGINE_FLOW_MODES = [
+    ENGINE_FLOW_POS_1,
+    ENGINE_FLOW_POS_2,
+    ENGINE_FLOW_POS_3,
+    ENGINE_FLOW_POS_4,
 ]
 
 SUPPORT_FLAGS = (

@@ -306,6 +306,18 @@ class Operations:
             reg = 0
         return ret, const.FlowEngine(reg)
 
+    async def async_set_engine_state(self,
+                                        engine_id:int = 0,
+                                        opt:const.FlowEngine = const.FlowEngine.AUTO,
+                                        ) -> bool:
+        ''' write engine state specified by id '''
+        if engine_id < 1 or engine_id > 4:
+            raise UnitIdError("Engine id must be between 1 and 4")
+        reg, ret = await self.__async_write_register(reg = const.REG_START_FLOW_STATE_ENGINE + (engine_id - 1), val = int(opt))
+        if not ret:
+            _LOGGER.error('Error writing engine state for id:{}'.format(engine_id))
+        return ret
+
     async def async_engine_order_temp(self,
                                         engine_id:int = 0,
                                         ) -> (bool, float):
