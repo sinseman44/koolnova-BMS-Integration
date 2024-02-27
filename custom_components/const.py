@@ -11,8 +11,6 @@ from homeassistant.components.climate.const import (
     FAN_LOW,
     FAN_MEDIUM,
     FAN_HIGH,
-    HVAC_MODE_COOL,
-    HVAC_MODE_HEAT,
 )
 from .koolnova.const import (
     GlobalMode,

@@ -49,7 +49,7 @@ class Area:
 
     @property
     def id_zone(self) -> int:
-        ''' Get Zone Id '''
+        ''' Get area id '''
         return self._id
 
     @property
@@ -284,7 +284,6 @@ class Koolnova:
 
         _LOGGER.debug("Retreive engines ...")
         for idx in range(1, const.NUM_OF_ENGINES + 1):
-            _LOGGER.debug("Engine id: {}".format(idx))
             engine = Engine(engine_id = idx)
             ret, engine.throughput = await self._client.engine_throughput(engine_id = idx)
             ret, engine.state = await self._client.engine_state(engine_id = idx)
@@ -356,7 +355,7 @@ class Koolnova:
                                 real_temp = zone_dict['real_temp'],
                                 order_temp = zone_dict['order_temp']
                                 ))
-        _LOGGER.debug("Zones registered: {}".format(self._areas))
+        _LOGGER.debug("Areas registered: {}".format(self._areas))
         return True
 
     @property
@@ -376,7 +375,7 @@ class Koolnova:
             return ret, None
         for idx, area in enumerate(self._areas):
                 if area.id_zone == zone_id:
-                    # update areas list value from modbus response
+                    # update areas list values from modbus response
                     self._areas[idx].state = infos['state']
                     self._areas[idx].register = infos['register']
                     self._areas[idx].fan_mode = infos['fan']
@@ -387,16 +386,17 @@ class Koolnova:
         return ret, self._areas[zone_id - 1]
 
     async def update_all_areas(self) -> list:
-        """ update all areas registered """
+        """ update all areas registered and all engines values """
+        ##### Areas
         _ret, _vals = await self._client.areas_registered()
         if not _ret:
             _LOGGER.error("Error retreiving areas values")
             return None
         else:
-            _LOGGER.debug("areas: {}".format(_vals))
             for k,v in _vals.items():
                 for _idx, _area in enumerate(self._areas):
                     if k == _area.id_zone:
+                        # update areas list values from modbus response
                         self._areas[_idx].state = v['state']
                         self._areas[_idx].register = v['register']
                         self._areas[_idx].fan_mode = v['fan']
@@ -404,7 +404,35 @@ class Koolnova:
                         self._areas[_idx].real_temp = v['real_temp']
                         self._areas[_idx].order_temp = v['order_temp']
 
-        return self._areas
+        ##### Engines
+        for _idx in range(1, const.NUM_OF_ENGINES + 1):
+            ret, self._engines[_idx - 1].throughput = await self._client.engine_throughput(engine_id = _idx)
+            ret, self._engines[_idx - 1].state = await self._client.engine_state(engine_id = _idx)
+            ret, self._engines[_idx - 1].order_temp = await self._client.engine_order_temp(engine_id = _idx)
+
+        ##### Global mode
+        ret, self._global_mode = await self._client.global_mode()
+        if not ret:
+            _LOGGER.error("Error retreiving global mode")
+            self._global_mode = const.GlobalMode.COLD
+
+        ##### Efficiency
+        ret, self._efficiency = await self._client.efficiency()
+        if not ret:
+            _LOGGER.error("Error retreiving efficiency")
+            self._efficiency = const.Efficiency.LOWER_EFF
+
+        ##### Sys state
+        ret, self._sys_state = await self._client.system_status()
+        if not ret:
+            _LOGGER.error("Error retreiving system status")
+            self._sys_state = const.SysState.SYS_STATE_OFF
+
+        return {"areas": self._areas, 
+                "engines": self._engines,
+                "glob": self._global_mode,
+                "eff": self._efficiency,
+                "sys": self._sys_state}
 
     @property
     def engines(self) -> list:
@@ -439,6 +467,7 @@ class Koolnova:
             raise AssertionError('Input variable must be Enum GlobalMode')
         ret = await self._client.set_global_mode(val)
         if not ret:
+            _LOGGER.error("[GLOBAL] Error writing {} to modbus".format(val))
             raise UpdateValueError('Error writing to modbus updated value')
         self._global_mode = val
 
@@ -456,6 +485,7 @@ class Koolnova:
             raise AssertionError('Input variable must be Enum Efficiency')
         ret = await self._client.set_efficiency(val)
         if not ret:
+            _LOGGER.error("[EFF] Error writing {} to modbus".format(val))
             raise UpdateValueError('Error writing to modbus updated value')    
         self._efficiency = val
 
@@ -472,6 +502,7 @@ class Koolnova:
             raise AssertionError('Input variable must be Enum SysState')
         ret = await self._client.set_system_status(val)
         if not ret:
+            _LOGGER.error("[SYS_STATE] Error writing {} to modbus".format(val))
             raise UpdateValueError('Error writing to modbus updated value') 
         self._sys_state = val
 

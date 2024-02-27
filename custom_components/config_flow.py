@@ -52,14 +52,13 @@ class TestVBE4ConfigFlow(ConfigFlow, domain=DOMAIN):
                 vol.Required("Parity", default="EVEN"): vol.In(["EVEN", "NONE"]),
                 vol.Required("Stopbits", default=DEFAULT_STOPBITS): vol.Coerce(int),
                 vol.Required("Timeout", default=1): vol.Coerce(int),
-                vol.Optional("Discover", default="MANUAL"): vol.In(["MANUAL", "AUTOMATIC"])
+                vol.Optional("Debug", default=False): cv.boolean
             }
         )
 
         if user_input:
-            # second call
             _LOGGER.debug("config_flow [user] - Step 1b -> On a reçu les valeurs: {}".format(user_input))
-            # On memorise les données dans le dictionnaire
+            # Second call; On memorise les données dans le dictionnaire
             self._user_inputs.update(user_input)
 
             self._conn = Operations(port=self._user_inputs["Device"],
@@ -68,12 +67,13 @@ class TestVBE4ConfigFlow(ConfigFlow, domain=DOMAIN):
                                     parity=self._user_inputs["Parity"][0],
                                     bytesize=self._user_inputs["Sizebyte"],
                                     stopbits=self._user_inputs["Stopbits"],
-                                    timeout=self._user_inputs["Timeout"])
+                                    timeout=self._user_inputs["Timeout"],
+                                    debug=self._user_inputs["Debug"])
             try:
                 await self._conn.connect()
                 if not self._conn.connected():
                     raise CannotConnectError(reason="Client Modbus not connected")
-                _LOGGER.debug("test communication with koolnova system")
+                #_LOGGER.debug("test communication with koolnova system")
                 ret, _ = await self._conn.system_status()
                 if not ret:
                     self._conn.disconnect()
@@ -94,14 +94,21 @@ class TestVBE4ConfigFlow(ConfigFlow, domain=DOMAIN):
                                     data_schema=user_form,
                                     errors=errors)
 
-    async def async_step_areas(self, 
+    async def async_step_areas(self,
                                 user_input: dict | None = None) -> FlowResult:
         """ Gestion de l'étape de découverte manuelle des zones """
         errors = {}
+        default_id = 1
+        default_area_name = "Area 1"
+        # set default_id to the last id configured
+        # set default_area_name with the last id configured
+        for area in self._user_inputs["areas"]:
+            default_id = area['Area_id'] + 1
+            default_area_name = "Area " + str(default_id)
         zone_form = vol.Schema(
             {
-                vol.Required("Name", default="zone"): vol.Coerce(str),
-                vol.Required("Zone_id", default=1): vol.Coerce(int),
+                vol.Required("Name", default=default_area_name): vol.Coerce(str),
+                vol.Required("Area_id", default=default_id): vol.Coerce(int),
                 vol.Optional("Other_area", default=False): cv.boolean
             }
         )
@@ -109,20 +116,20 @@ class TestVBE4ConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input:
             # second call
             try:
-                # test if zone_id is already configured
+                # test if area_id is already configured
                 for area in self._user_inputs["areas"]:
-                    if user_input['Zone_id'] == area['Zone_id']:
+                    if user_input['Area_id'] == area['Area_id']:
                         raise AreaAlreadySetError(reason="Area is already configured")
                 # Last area to configure or not ?
                 if not user_input['Other_area']:
                     try:
                         if not self._conn.connected():
                             await self._conn.connect()
-                        if user_input['Zone_id'] > NB_ZONE_MAX:
-                            raise ZoneIdError(reason="Zone_Id must be between 1 and 16")
-                        _LOGGER.debug("test area registered with id: {}".format(user_input['Zone_id']))
+                        if user_input['Area_id'] > NB_ZONE_MAX:
+                            raise ZoneIdError(reason="Area_id must be between 1 and 16")
+                        #_LOGGER.debug("test area registered with id: {}".format(user_input['Area_id']))
                         # test if area is configured into koolnova system 
-                        ret, _ = await self._conn.zone_registered(user_input["Zone_id"])
+                        ret, _ = await self._conn.zone_registered(user_input["Area_id"])
                         if not ret:
                             self._conn.disconnect()
                             raise AreaNotRegistredError(reason="Area Id is not registred")
@@ -137,7 +144,7 @@ class TestVBE4ConfigFlow(ConfigFlow, domain=DOMAIN):
                         _LOGGER.exception("Cannot connect to koolnova system")
                         errors[CONF_BASE] = "cannot_connect"
                     except AreaNotRegistredError:
-                        _LOGGER.exception("Area (id:{}) is not registered to the koolnova system".format(user_input['Zone_id']))
+                        _LOGGER.exception("Area (id:{}) is not registered to the koolnova system".format(user_input['Area_id']))
                         errors[CONF_BASE] = "area_not_registered"
                     except ZoneIdError:
                         _LOGGER.exception("Area Id must be between 1 and 16")
@@ -145,14 +152,14 @@ class TestVBE4ConfigFlow(ConfigFlow, domain=DOMAIN):
                     except Exception as e:
                         _LOGGER.exception("Config Flow generic error")
                 else:
-                    _LOGGER.debug("Config_flow [zone] - Une autre zone à configurer")
+                    #_LOGGER.debug("Config_flow [zone] - Une autre zone à configurer")
                     # Update dict
                     self._user_inputs["areas"].append(user_input)
                     # New area to configure
                     return await self.async_step_areas()
             
             except AreaAlreadySetError:
-                _LOGGER.exception("Area (id:{}) is already configured".format(user_input['Zone_id']))
+                _LOGGER.exception("Area (id:{}) is already configured".format(user_input['Area_id']))
                 errors[CONF_BASE] = "area_already_configured"
 
         # first call or error

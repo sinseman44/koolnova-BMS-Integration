@@ -3,11 +3,15 @@
 
 import logging
 
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback, Event, State
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.components.select import SelectEntity
 from homeassistant.util import Throttle
+from homeassistant.const import UnitOfTime
+from homeassistant.helpers.update_coordinator import (
+    CoordinatorEntity,
+)
 
 from .const import (
     DOMAIN,
@@ -17,7 +21,9 @@ from .const import (
     EFF_MODES,
     EFF_TRANSLATION,
 )
-from homeassistant.const import UnitOfTime
+
+from .coordinator import KoolnovaCoordinator
+
 from .koolnova.device import Koolnova
 from .koolnova.const import (
     GlobalMode,
@@ -32,21 +38,23 @@ async def async_setup_entry(hass: HomeAssistant,
                             ):
     """ Setup select entries """
 
-    for device in hass.data[DOMAIN]:
-        _LOGGER.debug("Device: {}".format(device))
-        entities = [
-            GlobalModeSelect(device),
-            EfficiencySelect(device),
-        ]
-        async_add_entities(entities)
+    device = hass.data[DOMAIN]["device"]
+    coordinator = hass.data[DOMAIN]["coordinator"]
 
-class GlobalModeSelect(SelectEntity):
+    entities = [
+        GlobalModeSelect(coordinator, device),
+        EfficiencySelect(coordinator, device),
+    ]
+    async_add_entities(entities)
+
+class GlobalModeSelect(CoordinatorEntity, SelectEntity):
     """ Select component to set global HVAC mode """
 
-    def __init__(self, 
+    def __init__(self,
+                    coordinator: KoolnovaCoordinator, # pylint: disable=unused-argument
                     device: Koolnova, # pylint: disable=unused-argument,
                 ) -> None:
-        super().__init__()
+        super().__init__(coordinator)
         self._attr_options = GLOBAL_MODES
         self._device = device
         self._attr_name = f"{device.name} Global HVAC Mode"
@@ -71,20 +79,22 @@ class GlobalModeSelect(SelectEntity):
         await self._device.set_global_mode(GlobalMode(opt))
         self.select_option(option)
 
-    @Throttle(MIN_TIME_BETWEEN_UPDATES)
-    async def async_update(self):
-        """ Retrieve latest state of global mode """
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """ Handle updated data from the coordinator 
+            Retrieve latest state of global mode """
         self.select_option(
-            GLOBAL_MODE_TRANSLATION[int(self._device.global_mode)]
+            GLOBAL_MODE_TRANSLATION[int(self.coordinator.data['glob'])]
         )
 
-class EfficiencySelect(SelectEntity):
+class EfficiencySelect(CoordinatorEntity, SelectEntity):
     """Select component to set global efficiency """
 
-    def __init__(self, 
+    def __init__(self,
+                    coordinator: KoolnovaCoordinator, # pylint: disable=unused-argument
                     device: Koolnova, # pylint: disable=unused-argument,
                 ) -> None:
-        super().__init__()
+        super().__init__(coordinator)
         self._attr_options = EFF_MODES
         self._device = device
         self._attr_name = f"{device.name} Global HVAC Efficiency"
@@ -114,9 +124,10 @@ class EfficiencySelect(SelectEntity):
         await self._device.set_efficiency(Efficiency(opt))
         self.select_option(option)
 
-    @Throttle(MIN_TIME_BETWEEN_UPDATES)
-    async def async_update(self):
-        """ Retrieve latest state of global efficiency """
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """ Handle updated data from the coordinator
+            Retrieve latest state of global efficiency """
         self.select_option(
-            EFF_TRANSLATION[int(self._device.efficiency)]
+            EFF_TRANSLATION[int(self.coordinator.data['eff'])]
         )

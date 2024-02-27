@@ -15,7 +15,7 @@
                     "Parity": "Parité",
                     "Stopbits": "Nombre de bits de stop",
                     "Timeout": "Timeout",
-                    "DiscoverArea": "Type de découverte de zones"
+                    "Debug": "Debug"
                 }
             },
             "areas": {
@@ -23,16 +23,16 @@
                 "description": "Information sur la zone à configurer",
                 "data": {
                     "Name": "Nom de la zone",
-                    "Zone_id": "Zone_id",
+                    "Area_id": "Identifiant de la zone",
                     "Other_area": "Ajouter une nouvelle zone"
                 }
             }
         },
         "error": {
             "cannot_connect": "Cannot connected to Koolnova system",
-            "area_not_registered": "Area is not registered to the Koolnova system",
-            "area_already_configured": "Area is already configured",
-            "zone_id_error": "Zone Id must an integer between 1 and 16"
+            "area_not_registered": "This Area is not registered to the Koolnova system",
+            "area_already_configured": "This Area is already configured",
+            "zone_id_error": "Area Id must an integer between 1 and 16"
         }
     }
 }

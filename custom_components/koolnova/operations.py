@@ -18,7 +18,7 @@ _LOGGER = log.getLogger(__name__)
 class Operations:
     ''' koolnova BMS Modbus operations class '''
 
-    def __init__(self, port:str, timeout:int) -> None:
+    def __init__(self, port:str, timeout:int, debug:bool=False) -> None:
         ''' Class constructor '''
         self._port = port
         self._timeout = timeout
@@ -33,8 +33,8 @@ class Operations:
                                     stopbits=self._stopbits,
                                     bytesize=self._bytesize,
                                     timeout=self._timeout)
-
-        pymodbus_apply_logging_config("DEBUG")
+        if debug:
+            pymodbus_apply_logging_config("DEBUG")
 
     def __init__(self, 
                     port:str="",
@@ -43,7 +43,8 @@ class Operations:
                     parity:str=const.DEFAULT_PARITY,
                     stopbits:int=const.DEFAULT_STOPBITS,
                     bytesize:int=const.DEFAULT_BYTESIZE,
-                    timeout:int=1) -> None:
+                    timeout:int=1,
+                    debug:bool=False) -> None:
         ''' Class constructor '''
         self._port = port
         self._addr = addr
@@ -58,8 +59,8 @@ class Operations:
                                     stopbits=self._stopbits,
                                     bytesize=self._bytesize,
                                     timeout=self._timeout)
-
-        pymodbus_apply_logging_config("DEBUG")
+        if debug:
+            pymodbus_apply_logging_config("DEBUG")
 
     async def __read_register(self, reg:int) -> (int, bool):
         ''' Read one holding register (code 0x03) '''
@@ -67,7 +68,7 @@ class Operations:
         if not self._client.connected:
             raise ModbusConnexionError('Client Modbus not connected')
         try:
-            _LOGGER.debug("reading holding register: {} - Addr: {}".format(hex(reg), self._addr))
+            #_LOGGER.debug("reading holding register: {} - Addr: {}".format(hex(reg), self._addr))
             rr = await self._client.read_holding_registers(address=reg, count=1, slave=self._addr)
             if rr.isError():
                 _LOGGER.error("reading holding register error")
@@ -113,7 +114,7 @@ class Operations:
         if not self._client.connected:
             raise ModbusConnexionError('Client Modbus not connected')
         try:
-            _LOGGER.debug("writing single register: {} - Addr: {} - Val: {}".format(hex(reg), self._addr, hex(val)))
+            #_LOGGER.debug("writing single register: {} - Addr: {} - Val: {}".format(hex(reg), self._addr, hex(val)))
             rq = await self._client.write_register(address=reg, value=val, slave=self._addr)
             if rq.isError():
                 _LOGGER.error("writing register error")
@@ -174,7 +175,7 @@ class Operations:
                                 zone_id:int = 0,
                                 ) -> (bool, dict):
         ''' Get Zone Status from Id '''
-        _LOGGER.debug("Area : {}".format(zone_id))
+        #_LOGGER.debug("Area : {}".format(zone_id))
         if zone_id > const.NB_ZONE_MAX or zone_id == 0:
             raise ZoneIdError('Zone Id must be between 1 to {}'.format(const.NB_ZONE_MAX))
         zone_dict = {}
@@ -338,7 +339,7 @@ class Operations:
             return False
         ret = await self.__write_register(reg = const.REG_START_ZONE + (4 * (zone_id - 1)) + const.REG_TEMP_ORDER, val = int(val * 2))
         if not ret:
-            _LOGGER.error('Error writing zone order temperature')
+            _LOGGER.error('Error writing area order temperature')
 
         return ret
 
@@ -389,13 +390,13 @@ class Operations:
         """ set area state """
         register:const.ZoneRegister = const.ZoneRegister.REGISTER_OFF
         if id_zone > const.NB_ZONE_MAX or id_zone == 0:
-            raise ZoneIdError('Zone Id must be between 1 to 16')
+            raise ZoneIdError('Area Id must be between 1 to 16')
         # retreive values to combine the new state with register read
         ret, register, _ = await self.area_state_and_register(id_zone = id_zone)
         if not ret:
             _LOGGER.error("Error reading state and register mode")
             return ret
-        _LOGGER.debug("register & state: {}".format(hex((int(register) << 1) | (int(val) & 0b01))))
+        #_LOGGER.debug("register & state: {}".format(hex((int(register) << 1) | (int(val) & 0b01))))
         ret = await self.__write_register(reg = const.REG_START_ZONE + (4 * (id_zone - 1)) + const.REG_LOCK_ZONE,
                                             val = int(int(register) << 1) | (int(val) & 0b01))
         if not ret:
@@ -416,7 +417,7 @@ class Operations:
         if not ret:
             _LOGGER.error("Error reading fan and clim mode")
             return ret
-        _LOGGER.debug("Fan & Clim: {}".format(hex((int(fan) << 4) | (int(val) & 0x0F))))
+        #_LOGGER.debug("Fan & Clim: {}".format(hex((int(fan) << 4) | (int(val) & 0x0F))))
         ret = await self.__write_register(reg = const.REG_START_ZONE + (4 * (id_zone - 1)) + const.REG_STATE_AND_FLOW,
                                             val = int(int(fan) << 4) | (int(val) & 0x0F))
         if not ret:
@@ -437,7 +438,7 @@ class Operations:
         if not ret:
             _LOGGER.error("Error reading fan and clim mode")
             return ret
-        _LOGGER.debug("Fan & Clim: {}".format(hex((int(val) << 4) | (int(clim) & 0x0F))))
+        #_LOGGER.debug("Fan & Clim: {}".format(hex((int(val) << 4) | (int(clim) & 0x0F))))
         ret = await self.__write_register(reg = const.REG_START_ZONE + (4 * (id_zone - 1)) + const.REG_STATE_AND_FLOW,
                                             val = int(int(val) << 4) | (int(clim) & 0x0F))
         if not ret:

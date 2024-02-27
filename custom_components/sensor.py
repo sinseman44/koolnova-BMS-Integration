@@ -1,4 +1,4 @@
-""" Implementation du composant sensors """
+""" for sensors components """
 import logging
 from datetime import datetime, timedelta
 
@@ -11,20 +11,35 @@ from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorStateClass,
 )
+
+from homeassistant.helpers.update_coordinator import (
+    CoordinatorEntity,
+)
+
 from  homeassistant.helpers.event import (
     async_track_time_interval,
     async_track_state_change_event,
 )
+
+from homeassistant.const import (
+    ATTR_TEMPERATURE,
+    UnitOfTime,
+    UnitOfTemperature
+)
+
 from .const import (
     DOMAIN
 )
-from homeassistant.const import UnitOfTime
+
+from .coordinator import KoolnovaCoordinator
+
 from .koolnova.device import (
     Koolnova, 
     Engine,
 )
 
 _LOGGER = logging.getLogger(__name__)
+MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=30)
 
 async def async_setup_entry(hass: HomeAssistant,
                             entry: ConfigEntry,
@@ -32,19 +47,18 @@ async def async_setup_entry(hass: HomeAssistant,
     """ Configuration des entités sensor à partir de la configuration
         ConfigEntry passée en argument
     """
-    _LOGGER.debug("Calling async_setup_entry - datas: {}".format(entry.data))
-    _LOGGER.debug("HASS data: {}".format(hass.data[DOMAIN]))
-    for device in hass.data[DOMAIN]:
-        _LOGGER.debug("Device: {}".format(device))
-        entities = [
-            DiagnosticsSensor(device, "Device", entry.data),
-            DiagnosticsSensor(device, "Address", entry.data),
-            DiagModbusSensor(device, entry.data),
-        ]
-        for engine in device.engines:
-            _LOGGER.debug("Engine: {}".format(engine))
-            entities.append(DiagEngineSensor(device, engine))
-        async_add_entities(entities)
+
+    device = hass.data[DOMAIN]["device"]
+    coordinator = hass.data[DOMAIN]["coordinator"]
+    entities = [
+        DiagnosticsSensor(device, "Device", entry.data),
+        DiagnosticsSensor(device, "Address", entry.data),
+        DiagModbusSensor(device, entry.data),
+    ]
+    for engine in device.engines:
+        entities.append(DiagEngineThroughputSensor(coordinator, device, engine))
+        entities.append(DiagEngineTempOrderSensor(coordinator, device, engine))
+    async_add_entities(entities)
 
 class DiagnosticsSensor(SensorEntity):
     # pylint: disable = too-many-instance-attributes
@@ -104,30 +118,69 @@ class DiagModbusSensor(SensorEntity):
         """ Do not poll for those entities """
         return False
 
-class DiagEngineSensor(SensorEntity):
+class DiagEngineThroughputSensor(CoordinatorEntity, SensorEntity):
     # pylint: disable = too-many-instance-attributes
     """ Representation of a Sensor """
 
     _attr_entity_category: EntityCategory | None = EntityCategory.DIAGNOSTIC
 
     def __init__(self,
+                    coordinator: KoolnovaCoordinator, # pylint: disable=unused-argument
                     device: Koolnova, # pylint: disable=unused-argument
                     engine: Engine, # pylint: disable=unused-argument
                     ) -> None:
         """ Class constructor """
+        super().__init__(coordinator)
         self._device = device
         self._engine = engine
         self._attr_name = f"{device.name} Engine AC{engine.engine_id} Throughput"
         self._attr_entity_registry_enabled_default = True
         self._attr_device_info = self._device.device_info
         self._attr_unique_id = f"{DOMAIN}-Engine-AC{engine.engine_id}-throughput-sensor"
-        self._attr_native_value = f"TEST"
+        self._attr_native_value = "{}".format(engine.throughput)
 
     @property
     def icon(self) -> str | None:
-        return "mdi:monitor"
+        return "mdi:thermostat-cog"
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """ Handle updated data from the coordinator """
+        for _cur_engine in self.coordinator.data['engines']:
+            if self._engine.engine_id == _cur_engine.engine_id:
+                self._attr_native_value = "{}".format(_cur_engine.throughput)
+        self.async_write_ha_state()
+
+class DiagEngineTempOrderSensor(CoordinatorEntity, SensorEntity):
+    # pylint: disable = too-many-instance-attributes
+    """ Representation of a Sensor """
+
+    _attr_entity_category: EntityCategory | None = EntityCategory.DIAGNOSTIC
+    _attr_native_unit_of_measurement: str = UnitOfTemperature.CELSIUS
+
+    def __init__(self,
+                    coordinator: KoolnovaCoordinator, # pylint: disable=unused-argument
+                    device: Koolnova, # pylint: disable=unused-argument
+                    engine: Engine, # pylint: disable=unused-argument
+                    ) -> None:
+        """ Class constructor """
+        super().__init__(coordinator)
+        self._device = device
+        self._engine = engine
+        self._attr_name = f"{device.name} Engine AC{engine.engine_id} Temperature Order"
+        self._attr_entity_registry_enabled_default = True
+        self._attr_device_info = self._device.device_info
+        self._attr_unique_id = f"{DOMAIN}-Engine-AC{engine.engine_id}-temp-order-sensor"
+        self._attr_native_value = "{}".format(engine.order_temp)
 
     @property
-    def should_poll(self) -> bool:
-        """ Do not poll for those entities """
-        return False
+    def icon(self) -> str | None:
+        return "mdi:thermometer-lines"
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """ Handle updated data from the coordinator """
+        for _cur_engine in self.coordinator.data['engines']:
+            if self._engine.engine_id == _cur_engine.engine_id:
+                self._attr_native_value = "{}".format(_cur_engine.order_temp)
+        self.async_write_ha_state()

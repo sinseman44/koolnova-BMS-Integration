@@ -32,9 +32,11 @@ from .const import (
     HVAC_TRANSLATION,
 )
 
+from .coordinator import KoolnovaCoordinator
+
 from homeassistant.const import (
-    TEMP_CELSIUS,
     ATTR_TEMPERATURE,
+    UnitOfTemperature,
 )
 
 from .koolnova.device import Koolnova, Area
@@ -52,7 +54,6 @@ from .koolnova.const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
-MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=30)
 
 async def async_setup_entry(hass: HomeAssistant,
                             entry: ConfigEntry,
@@ -61,38 +62,19 @@ async def async_setup_entry(hass: HomeAssistant,
     """Setup switch entries"""
 
     entities = []
-    
-    for device in hass.data[DOMAIN]:
-        coordinator = ClimateCoordinator(hass, device)
-        for area in device.areas:
-            _LOGGER.debug("Device: {} - Area: {}".format(device, area))
-            entities.append(AreaClimateEntity(coordinator, device, area))
-        async_add_entities(entities)
+    coordinator = hass.data[DOMAIN]["coordinator"]
+    device = hass.data[DOMAIN]["device"]
 
-class ClimateCoordinator(DataUpdateCoordinator):
-    """ Climate coordinator """
-
-    def __init__(self,
-                    hass: HomeAssistant, 
-                    device: Koolnova,
-                ) -> None:
-        """ Class constructor """
-        super().__init__(
-            hass,
-            _LOGGER,
-            # Name of the data. For logging purposes.
-            name=DOMAIN,
-            update_method=device.update_all_areas,
-            # Polling interval. Will only be polled if there are subscribers.
-            update_interval=timedelta(seconds=30),
-        )
+    for area in device.areas:
+        entities.append(AreaClimateEntity(coordinator, device, area))
+    async_add_entities(entities)
 
 class AreaClimateEntity(CoordinatorEntity, ClimateEntity):
     """ Reperesentation of a climate entity """
     # pylint: disable = too-many-instance-attributes
 
     _attr_supported_features: int = SUPPORT_FLAGS
-    _attr_temperature_unit: str = TEMP_CELSIUS
+    _attr_temperature_unit: str = UnitOfTemperature.CELSIUS
     _attr_hvac_modes: list[HVACMode] = SUPPORTED_HVAC_MODES
     _attr_fan_modes: list[str] = SUPPORTED_FAN_MODES
     _attr_hvac_mode: HVACMode = HVACMode.OFF
@@ -103,9 +85,10 @@ class AreaClimateEntity(CoordinatorEntity, ClimateEntity):
     _attr_target_temperature_high: float = MAX_TEMP_ORDER
     _attr_target_temperature_low: float = MIN_TEMP_ORDER
     _attr_target_temperature_step: float = STEP_TEMP_ORDER
+    _enable_turn_on_off_backwards_compatibility: bool = False
 
     def __init__(self,
-                coordinator: ClimateCoordinator, # pylint: disable=unused-argument
+                coordinator: KoolnovaCoordinator, # pylint: disable=unused-argument
                 device: Koolnova, # pylint: disable=unused-argument
                 area: Area, # pylint: disable=unused-argument
                 ) -> None:
@@ -118,9 +101,7 @@ class AreaClimateEntity(CoordinatorEntity, ClimateEntity):
         self._attr_unique_id = f"{DOMAIN}-{area.name}-area-climate"
         self._attr_current_temperature = area.real_temp
         self._attr_target_temperature = area.order_temp
-        _LOGGER.debug("[Climate {}] {} - {}".format(self._area.id_zone, self._area.fan_mode, FAN_TRANSLATION[int(self._area.fan_mode)]))
         self._attr_fan_mode = FAN_TRANSLATION[int(self._area.fan_mode)]
-        _LOGGER.debug("[Climate {}] {} - {}".format(self._area.id_zone, self._area.clim_mode, self._translate_to_hvac_mode()))
         self._attr_hvac_mode = self._translate_to_hvac_mode()
 
     def _translate_to_hvac_mode(self) -> int:
@@ -181,7 +162,7 @@ class AreaClimateEntity(CoordinatorEntity, ClimateEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """ Handle updated data from the coordinator """
-        for _cur_area in self.coordinator.data:
+        for _cur_area in self.coordinator.data['areas']:
             if _cur_area.id_zone == self._area.id_zone:
                 _LOGGER.debug("[Climate {}] temp:{} - target:{} - state: {} - hvac:{} - fan:{}".format(_cur_area.id_zone,
                                                                                                         _cur_area.real_temp,
