@@ -52,3 +52,10 @@ Modbus RTU (Remote Terminal Unit), makes use of a compact, binary representation
 Install using HACS In HACS go to the three dots int the upper right corner choose add custom repository and add https://github.com/sinseman44/koolnova-BMS-Integration to the list.
 
 Install manually Clone or copy this repository and copy the folder 'custom_components/koolnova-BMS-integration' into '/custom_components/koolnova-BMS-integration'
+
+## Home Assistant USB dongle recognition
+
+After plugging the USB dongle into the system, check that among the tty, it's recognized by Home Assistant.
+Example : ttyUSB0 is the node added for the device
+
+![HA_hardware](png/HA_hardware_tty.png)
