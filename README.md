@@ -63,4 +63,10 @@ Example : ttyUSB0 is the node added for the device. The absolute path of this no
 
 # Koolnova BMS Configuration
 
+The first page after installing the component is the Modbus BMS configuration. All serial fields are filled with default values defined by Koolnova.
+Adapt the fields according to your own configuration.
+
 ![HA_main_config](png/HA_config_Koolnova_BMS.png)
+
+After validation of the serial configuation, the component will test if it can communicate with the koolnova system. If not, an error occur.
+
