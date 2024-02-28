@@ -1,5 +1,7 @@
 # koolnova-BMS-Integration
 
+![intro](png/areas_controls.png)
+
 _Disclaimer : This is not a Koolnova official integration and use at your own risk._
 
 **koolnova-BMS-integration** is an integration of koolnova system into Home Assistant using BMS (Building Management System) and Modbus RTU (RS485) protocol.
