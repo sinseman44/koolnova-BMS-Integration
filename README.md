@@ -56,6 +56,11 @@ Install manually Clone or copy this repository and copy the folder 'custom_compo
 ## Home Assistant USB dongle recognition
 
 After plugging the USB dongle into the system, check that among the tty, it's recognized by Home Assistant.
-Example : ttyUSB0 is the node added for the device
+
+Example : ttyUSB0 is the node added for the device. The absolute path of this node (eg: /dev/ttyUSB0) will be used in the component configuration. 
 
 ![HA_hardware](png/HA_hardware_tty.png)
+
+# Koolnova BMS Configuration
+
+![HA_main_config](png/HA_config_Koolnova_BMS.png)
