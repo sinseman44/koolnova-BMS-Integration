@@ -1,12 +1,17 @@
 {
-    "domain": "testVBE_4",
-    "name": "Test Tuto VBE 4",
+    "domain": "koolnova-BMS-Integration",
+    "name": "Koolnova BMS Modbus RS485",
     "codeowners": ["@sinseman44"],
     "config_flow": true,
-    "documentation": "https://github.com/sinseman44/testVBE_4",
-    "issue_tracker": "https://github.com/sinseman44/testVBE_4/issues",
+    "documentation": "https://github.com/sinseman44/koolnova-BMS-Integration",
+    "issue_tracker": "https://github.com/sinseman44/koolnova-BMS-Integration/issues",
     "integration_type": "device",
     "iot_class": "calculated",
     "quality_scale": "silver",
-    "version": "1.0.0"
+    "loggers": ["koolnova"],
+    "requirements": [
+	"pymodbus==3.5.4",
+	"pyserial==3.5"	
+    ],
+    "version": "0.1.0"
 }
