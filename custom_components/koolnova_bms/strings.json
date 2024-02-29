@@ -1,7 +1,7 @@
 {
-    "title": "testVBE_4",
+    "title": "Koolnova BMS",
     "config": {
-        "flow_title": "Test VBE 4 configuration",
+        "flow_title": "Koolnova BMS configuration",
         "step": {
             "user": {
                 "title": "Configuration Client Modbus RTU",

@@ -1,7 +1,7 @@
 {
-    "title": "testVBE_4",
+    "title": "Koolnova BMS",
     "config": {
-        "flow_title": "test VBE 4 configuration",
+        "flow_title": "Koolnova BMS configuration",
         "step": {
             "user": {
                 "title": "Configuration Client Modbus RTU",
@@ -14,8 +14,8 @@
                     "Sizebyte": "Taille des données",
                     "Parity": "Parité",
                     "Stopbits": "Nombre de bits de stop",
-                    "Timeout": "Timeout",
-                    "Debug": "Debug"
+                    "Timeout": "Délai d'attente",
+                    "Debug": "Deboggage"
                 }
             },
             "areas": {
@@ -29,10 +29,10 @@
             }
         },
         "error": {
-            "cannot_connect": "Cannot connected to Koolnova system",
-            "area_not_registered": "This Area is not registered to the Koolnova system",
-            "area_already_configured": "This Area is already configured",
-            "zone_id_error": "Area Id must an integer between 1 and 16"
+            "cannot_connect": "Impossible de se connecter au système Koolnova",
+            "area_not_registered": "Cette zone n'est pas enregistrée sur le système Koolnova",
+            "area_already_configured": "Cette zone est déjà configurée",
+            "zone_id_error": "L'identifiant de zone doit être un nombre entre 1 et 16"
         }
     }
 }
