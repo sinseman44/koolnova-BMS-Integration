@@ -94,12 +94,17 @@ The area configuration ends with no new area.<br />
 
 ## Climate
 
+![koolnova_climate](png/koolnova_climate.png)
+
 The following parameters can be controlled for the `climate` platform entities:
 - Power
-- Target temperature (celcius)
-- Operation mode (HVAC mode)
+- Target temperature (celcius, Min: 15°C -> Max: 35°C)
+- Operation mode (HVAC mode: Heating/Refeshing)
+- Fan mode (HVAC mode)
 
 ## Sensor (Diagnostic)
+
+![koolnova_diags](png/koolnova_diags.png)
 
 The following attributes are available for diagnostic `sensor` platform entities:
 - Modbus serial (Device, Address, port, ...)
@@ -107,7 +112,12 @@ The following attributes are available for diagnostic `sensor` platform entities
   - Target temperature: Min: 15°C -> Max: 30°C
   - Troughput: int value between 0 (engine stopped) to 15 (maximum troughput)
 
+- Target temperature (celcius) for each area:
+  - 0°C to 50°C
+
 ## Select
+
+![koolnova_selects](png/koolnova_selects.png)
 
 The following parameters can be controlled for the `select` platform entities:
 - Global operation mode (HVAC mode)
