@@ -1,7 +1,7 @@
 # koolnova-BMS-Integration
 
 [![HACS Badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
-[![License](https://img.shields.io/github/license/sinseman44/koolnovaBMS?style=for-the-badge)](https://git.nas.benserv.fr/vincent/koolnova-BMS-Integration/raw/branch/main/LICENSE)
+[![License](https://img.shields.io/github/license/sinseman44/koolnovaBMS?style=for-the-badge)](https://github.com/koolnova-BMS-Integration/blob/main/LICENSE)
 [![Latest Release](https://img.shields.io/github/v/release/comtef/melzone-building?style=for-the-badge)](https://github.com/sinseman44/koolnova-BMS-Integration/releases)
 [![Size](https://img.badgesize.io/https:/github.com/comtef/melzone-building/releases/latest/download/melzone_building.zip?style=for-the-badge)](https://github.com/sinseman44/koolnova-BMS-Integration/releases)
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=sinseman44&repository=koolnova-BMS-Integration&category=integration)
@@ -89,7 +89,48 @@ The area configuration ends with no new area.<br />
 
 # Features
 
-TODO
+- Integrates local API to read/write Modbus koolnova registers
+- Provides `climate` for each area, `sensor`, `select` and `switch`
+
+## Climate
+
+The following parameters can be controlled for the `climate` platform entities:
+- Power
+- Target temperature (celcius)
+- Operation mode (HVAC mode)
+
+## Sensor (Diagnostic)
+
+The following attributes are available for diagnostic `sensor` platform entities:
+- Modbus serial (Device, Address, port, ...)
+- Target temperature (celcius) and throughput for each engine (maximum 4):
+  - Target temperature: Min: 15°C -> Max: 30°C
+  - Troughput: int value between 0 (engine stopped) to 15 (maximum troughput)
+
+## Select
+
+The following parameters can be controlled for the `select` platform entities:
+- Global operation mode (HVAC mode)
+  - cold
+  - heat
+  - heating floor
+  - refreshing floor and refreshing air
+  - heating floor and heating air
+
+- Global efficiency defined the balance point between efficiency and speed of the area system.
+  - Lower: the set temperature is reached sooner
+  - Higher: better efficiency 
+
+- Engine state: int value which represents the flow programming of the system engines
+  - 1: Manual minimum
+  - 2: Manual medium
+  - 3: Manual high
+  - 4: Automatic
+
+## Switch
+
+The following parameter can be controlled for the `switch` platform entitie:
+- Global HVAC State (stopped or running)
 
 # Debugging
 
