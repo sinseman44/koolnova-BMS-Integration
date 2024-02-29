@@ -42,7 +42,8 @@ Modbus RTU (Remote Terminal Unit), makes use of a compact, binary representation
 
 * An installation of Home Assistant with free USB port.
 * A RS485 USB dongle.
-* Enabling Modbus communication on the master thermostat (INT 49)
+* A Koolnova air conditioning system (identifier: 100-CPNR00) with areas defined.
+* Enabling Modbus communication on the master radio thermostat (INT 49).
 
 ![INT49](png/koolnova-smart_radio_INT_49.png)
 
@@ -58,7 +59,7 @@ Modbus RTU (Remote Terminal Unit), makes use of a compact, binary representation
 
 Install using HACS In HACS go to the three dots int the upper right corner choose add custom repository and add https://github.com/sinseman44/koolnova-BMS-Integration to the list.
 
-Install manually Clone or copy this repository and copy the folder 'custom_components/koolnova-BMS-integration' into '/custom_components/koolnova-BMS-integration'
+Install manually Clone or copy this repository and copy the folder `custom_components/koolnova_bms` into `/custom_components/koolnova_bms`
 
 ## Home Assistant USB dongle recognition
 
@@ -123,9 +124,9 @@ The following parameters can be controlled for the `select` platform entities:
 - Global operation mode (HVAC mode)
   - cold
   - heat
-  - heating floor
-  - refreshing floor and refreshing air
-  - heating floor and heating air
+  - heating floor (need a specific hardware module, identifier: 100-MSR002)
+  - refreshing floor and refreshing air (need a specific hardware module, identifier: 100-MSR002)
+  - heating floor and heating air (need a specific hardware module, identifier: 100-MSR002)
 
 - Global efficiency defined the balance point between efficiency and speed of the area system.
   - Lower: the set temperature is reached sooner
