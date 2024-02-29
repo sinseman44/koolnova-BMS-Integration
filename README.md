@@ -1,10 +1,17 @@
 # koolnova-BMS-Integration
 
+[![HACS Badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
+[![License](https://img.shields.io/github/license/sinseman44/koolnovaBMS?style=for-the-badge)](https://git.nas.benserv.fr/vincent/koolnova-BMS-Integration/raw/branch/main/LICENSE)
+[![Latest Release](https://img.shields.io/github/v/release/comtef/melzone-building?style=for-the-badge)](https://github.com/sinseman44/koolnova-BMS-Integration/releases)
+[![Size](https://img.badgesize.io/https:/github.com/comtef/melzone-building/releases/latest/download/melzone_building.zip?style=for-the-badge)](https://github.com/sinseman44/koolnova-BMS-Integration/releases)
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=sinseman44&repository=koolnova-BMS-Integration&category=integration)
+[![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=koolnova_BMS)
+
 ![intro](png/areas_controls.png)
 
 _Disclaimer : This is not a Koolnova official integration and use at your own risk._
 
-**koolnova-BMS-integration** is an integration of koolnova system into Home Assistant using BMS (Building Management System) and Modbus RTU (RS485) protocol.
+**koolnova-BMS-Integration** is an integration of koolnova system into Home Assistant using BMS (Building Management System) and Modbus RTU (RS485) protocol.
 
 ## Building Management System (BMS)
 
@@ -70,9 +77,26 @@ Adapt the fields according to your own configuration.
 
 After validation of the serial configuation, the component will test if it can communicate with the koolnova system. If not, an error occur.<br />
 <br />
-The next configuration page is the area configuration.<br />
+## Area installation
+
+The next installation page is the area configuration.<br />
+This page appears for each area that must be configured.<br />
 
 ![HA_area_config](png/HA_area_configuration.png)
 
 The checkbox must be filled before validation if you want to configure a new area.<br />
 The area configuration ends with no new area.<br />
+
+# Features
+
+TODO
+
+# Debugging
+
+Whenever you write a bug report, it helps tremendously if you indicate sufficient debug logs directly (otherwise we will just ask for them and it will take longer). So please enable debug logs like this and include them in your issue:
+```yaml
+logger:
+  default: warning
+  logs:
+    custom_components.koolnova_BMS: debug
+```
