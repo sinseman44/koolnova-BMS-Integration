@@ -1,12 +1,12 @@
 {
-    "domain": "koolnova-BMS-Integration",
+    "domain": "koolnova_BMS",
     "name": "Koolnova BMS Modbus RS485",
     "codeowners": ["@sinseman44"],
     "config_flow": true,
     "documentation": "https://github.com/sinseman44/koolnova-BMS-Integration",
     "issue_tracker": "https://github.com/sinseman44/koolnova-BMS-Integration/issues",
     "integration_type": "device",
-    "iot_class": "calculated",
+    "iot_class": "local_polling",
     "quality_scale": "silver",
     "loggers": ["koolnova"],
     "requirements": [
