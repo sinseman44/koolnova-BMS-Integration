@@ -1,4 +1,4 @@
-""" Les constantes pour l'intégration TestVBE_4 """
+""" consts for koolnova BMS """
 
 from datetime import timedelta
 
@@ -21,13 +21,13 @@ from .koolnova.const import (
     ZoneState,
 )
 
-DOMAIN = "testVBE_4"
+DOMAIN = "koolnova_bms"
 PLATFORMS: list[Platform] = [Platform.SENSOR,
                                 Platform.SELECT,
                                 Platform.SWITCH,
                                 Platform.CLIMATE]
 
-CONF_NAME = "koolnova_test_HA"
+CONF_NAME = "koolnova-BMS-Integration"
 CONF_DEVICE_ID = "device_id"
 
 DEVICE_MANUFACTURER = "koolnova"
