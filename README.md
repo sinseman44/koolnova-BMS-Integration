@@ -35,7 +35,7 @@ Modbus RTU (Remote Terminal Unit), makes use of a compact, binary representation
 
 * An installation of Home Assistant with free USB port.
 * A RS485 USB dongle.
-* Enabling Modbus communication on the thermostat (INT 49)
+* Enabling Modbus communication on the master thermostat (INT 49)
 
 ![INT49](png/koolnova-smart_radio_INT_49.png)
 
@@ -61,7 +61,7 @@ Example : ttyUSB0 is the node added for the device. The absolute path of this no
 
 ![HA_hardware](png/HA_hardware_tty.png)
 
-# Koolnova BMS Configuration
+# Koolnova BMS Installation
 
 The first page after installing the component is the Modbus BMS configuration. All serial fields are filled with default values defined by Koolnova.<br />
 Adapt the fields according to your own configuration.
