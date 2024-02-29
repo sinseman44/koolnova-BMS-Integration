@@ -98,5 +98,5 @@ Whenever you write a bug report, it helps tremendously if you indicate sufficien
 logger:
   default: warning
   logs:
-    custom_components.koolnova_BMS: debug
+    custom_components.koolnova_bms: debug
 ```
