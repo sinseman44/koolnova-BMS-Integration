@@ -1,5 +1,5 @@
 {
-    "domain": "koolnova_BMS",
+    "domain": "koolnova_bms",
     "name": "Koolnova BMS Modbus RS485",
     "codeowners": ["@sinseman44"],
     "config_flow": true,
