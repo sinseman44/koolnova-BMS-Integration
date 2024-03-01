@@ -100,6 +100,8 @@ ENGINE_FLOW_MODES = [
 SUPPORT_FLAGS = (
     ClimateEntityFeature.TARGET_TEMPERATURE
     | ClimateEntityFeature.FAN_MODE
+    | ClimateEntityFeature.TURN_OFF
+    | ClimateEntityFeature.TURN_ON
 )
 
 SUPPORTED_HVAC_MODES = [
