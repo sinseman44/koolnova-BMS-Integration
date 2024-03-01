@@ -1,9 +1,9 @@
 # koolnova-BMS-Integration
 
 [![HACS Badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
-[![License](https://img.shields.io/github/license/sinseman44/koolnovaBMS?style=for-the-badge)](https://github.com/sinseman44/koolnova-BMS-Integration/blob/main/LICENSE)
-[![Latest Release](https://img.shields.io/github/v/release/comtef/melzone-building?style=for-the-badge)](https://github.com/sinseman44/koolnova-BMS-Integration/releases)
-[![Size](https://img.badgesize.io/https:/github.com/comtef/melzone-building/releases/latest/download/melzone_building.zip?style=for-the-badge)](https://github.com/sinseman44/koolnova-BMS-Integration/releases)
+[![License](https://img.shields.io/github/license/sinseman44/koolnova-BMS-Integration?style=for-the-badge)](https://github.com/sinseman44/koolnova-BMS-Integration/blob/main/LICENSE)
+[![Latest Release](https://img.shields.io/github/v/release/sinseman44/koolnova-BMS-Integration?style=for-the-badge)](https://github.com/sinseman44/koolnova-BMS-Integration/releases)
+[![Size](https://img.badgesize.io/https:/github.com/sinseman44/koolnova-BMS-Integration/releases/latest/download/koolnova-BMS-Integration.zip?style=for-the-badge)](https://github.com/sinseman44/koolnova-BMS-Integration/releases)
 <br />
 
 ![intro](png/areas_controls.png)
