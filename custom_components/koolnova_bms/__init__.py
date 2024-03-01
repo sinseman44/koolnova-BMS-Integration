@@ -17,8 +17,7 @@ async def async_setup_entry(hass: HomeAssistant,
                             entry: ConfigEntry) -> bool: # pylint: disable=unused-argument
     """ Creation des entités à partir d'une configEntry """
 
-    if DOMAIN not in hass.data:
-        hass.data.setdefault(DOMAIN, {})
+    hass.data.setdefault(DOMAIN, {})
     
     name: str = entry.data['Name']
     port: str = entry.data['Device']

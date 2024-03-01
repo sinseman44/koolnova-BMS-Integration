@@ -51,7 +51,7 @@ class TestVBE4ConfigFlow(ConfigFlow, domain=DOMAIN):
                 vol.Required("Sizebyte", default=DEFAULT_BYTESIZE): vol.Coerce(int),
                 vol.Required("Parity", default="EVEN"): vol.In(["EVEN", "NONE"]),
                 vol.Required("Stopbits", default=DEFAULT_STOPBITS): vol.Coerce(int),
-                vol.Required("Timeout", default=1): vol.Coerce(int),
+                vol.Required("Timeout", default=5): vol.Coerce(int),
                 vol.Optional("Debug", default=False): cv.boolean
             }
         )
