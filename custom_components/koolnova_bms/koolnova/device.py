@@ -267,18 +267,21 @@ class Koolnova:
         if not ret:
             _LOGGER.error("Error retreiving system status")
             self._sys_state = const.SysState.SYS_STATE_OFF
+            return False
 
         _LOGGER.debug("Retreive global mode ...")
         ret, self._global_mode = await self._client.async_global_mode()
         if not ret:
             _LOGGER.error("Error retreiving global mode")
             self._global_mode = const.GlobalMode.COLD
+            return False
 
         _LOGGER.debug("Retreive efficiency ...")
         ret, self._efficiency = await self._client.async_efficiency()
         if not ret:
             _LOGGER.error("Error retreiving efficiency")
             self._efficiency = const.Efficiency.LOWER_EFF
+            return False
         
         await asyncio.sleep(0.1)
 

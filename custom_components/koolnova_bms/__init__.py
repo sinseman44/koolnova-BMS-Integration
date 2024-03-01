@@ -17,8 +17,8 @@ async def async_setup_entry(hass: HomeAssistant,
                             entry: ConfigEntry) -> bool: # pylint: disable=unused-argument
     """ Creation des entités à partir d'une configEntry """
 
-    #hass.data.setdefault(DOMAIN, [])
-    hass.data.setdefault(DOMAIN, {})
+    if DOMAIN not in hass.data:
+        hass.data.setdefault(DOMAIN, {})
     
     name: str = entry.data['Name']
     port: str = entry.data['Device']
@@ -28,13 +28,26 @@ async def async_setup_entry(hass: HomeAssistant,
     bytesize: int = entry.data['Sizebyte']
     stopbits: int = entry.data['Stopbits']
     timeout: int = entry.data['Timeout']
-    
+    _LOGGER.debug("name:{} - port:{} - addr:{} - baudrate:{} - parity: {} - bytesize:{} - stopbits:{} - timeout:{}".format(name,
+                                                                                                                        port,
+                                                                                                                        addr,
+                                                                                                                        baudrate,
+                                                                                                                        parity,
+                                                                                                                        bytesize,
+                                                                                                                        stopbits,
+                                                                                                                        timeout))
     try:
         device = Koolnova(name, port, addr, baudrate, parity, bytesize, stopbits, timeout)
         # connect to modbus client
-        await device.async_connect()
+        ret = await device.async_connect()
+        if not ret:
+            _LOGGER.error("Something went wrong when connecting to modbus ...")
+            return False
         # update attributes
-        await device.async_update()
+        ret = await device.async_update()
+        if not ret:
+            _LOGGER.error("Something went wrong when updating datas ...")
+            return False
         # record each area in device
         _LOGGER.debug("Koolnova areas: {}".format(entry.data['areas']))
         for area in entry.data['areas']:
@@ -53,4 +66,8 @@ async def async_setup_entry(hass: HomeAssistant,
 
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """ Handle removal of an entry """
-    _LOGGER.debug("Appel de async_remove_entry - entry: {}".format(entry))
+    _LOGGER.debug("Remove entry")
+    if hass.data[DOMAIN]:
+        device = hass.data[DOMAIN]['device']
+        if device.connected():
+            device.disconnect()
