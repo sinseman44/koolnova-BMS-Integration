@@ -241,7 +241,7 @@ class Operations:
         reg, ret = await self.__async_read_register(const.REG_GLOBAL_MODE)
         if not ret:
             _LOGGER.error('Error retreive global mode')
-            reg = 0
+            reg = 1
         return ret, const.GlobalMode(reg)
 
     async def async_set_global_mode(self,
@@ -258,7 +258,7 @@ class Operations:
         reg, ret = await self.__async_read_register(const.REG_EFFICIENCY)
         if not ret:
             _LOGGER.error('Error retreive efficiency')
-            reg = 0
+            reg = 1
         return ret, const.Efficiency(reg)
 
     async def async_set_efficiency(self,
@@ -303,7 +303,7 @@ class Operations:
         reg, ret = await self.__async_read_register(const.REG_START_FLOW_STATE_ENGINE + (engine_id - 1))
         if not ret:
             _LOGGER.error('Error retreive engine state for id:{}'.format(engine_id))
-            reg = 0
+            reg = 4
         return ret, const.FlowEngine(reg)
 
     async def async_set_engine_state(self,
