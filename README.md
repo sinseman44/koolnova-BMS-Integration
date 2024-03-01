@@ -1,6 +1,6 @@
 # koolnova-BMS-Integration
 
-[![HACS Badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
 [![License](https://img.shields.io/github/license/sinseman44/koolnova-BMS-Integration?style=for-the-badge)](https://github.com/sinseman44/koolnova-BMS-Integration/blob/main/LICENSE)
 [![Latest Release](https://img.shields.io/github/v/release/sinseman44/koolnova-BMS-Integration?style=for-the-badge)](https://github.com/sinseman44/koolnova-BMS-Integration/releases)
 [![Size](https://img.badgesize.io/https:/github.com/sinseman44/koolnova-BMS-Integration/releases/latest/download/koolnova-BMS-Integration.zip?style=for-the-badge)](https://github.com/sinseman44/koolnova-BMS-Integration/releases)
@@ -38,6 +38,10 @@ Modbus RTU (Remote Terminal Unit), makes use of a compact, binary representation
 # Support
 
 <a href="https://www.buymeacoffee.com/sinseman44" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 40px !important;width: 145px !important;" ></a>
+
+# Todo 📃 and Bug report 🐞
+
+See [Github To Do & Bug List](https://github.com/sinseman44/koolnova-BMS-Integration/issues)
 
 # Getting Started
 
