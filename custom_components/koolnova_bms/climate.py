@@ -161,7 +161,7 @@ class AreaClimateEntity(CoordinatorEntity, ClimateEntity):
         
     async def async_turn_off(self) -> None:
         """Turn the entity off."""
-        _LOGGER.debug("[Climate {}] turn off: {}".format(self._area.id_zone))
+        _LOGGER.debug("[Climate {}] turn off".format(self._area.id_zone))
         ret = await self._device.async_set_area_off(zone_id = self._area.id_zone)
         if not ret:
             _LOGGER.exception("Error setting off HVAC for area id {}".format(self._area.id_zone))
@@ -169,7 +169,7 @@ class AreaClimateEntity(CoordinatorEntity, ClimateEntity):
 
     async def async_turn_on(self) -> None:
         """Turn the entity on."""
-        _LOGGER.debug("[Climate {}] turn on: {}".format(self._area.id_zone))
+        _LOGGER.debug("[Climate {}] turn on".format(self._area.id_zone))
         ret = await self._device.async_set_area_on(zone_id = self._area.id_zone)
         if not ret:
             _LOGGER.exception("Error setting on HVAC for area id {}".format(self._area.id_zone))
