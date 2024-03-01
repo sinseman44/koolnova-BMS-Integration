@@ -1,6 +1,5 @@
 {
   "name": "koolnova BMS",
   "homeassistant": "2024.2",
-  "render_readme": true,
-  "country":["FR","ES","EN"],
+  "render_readme": true
 }
