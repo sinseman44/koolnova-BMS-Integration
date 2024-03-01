@@ -570,6 +570,38 @@ class Koolnova:
         self._areas[_idx].order_temp = temp
         return temp
 
+    async def async_set_area_off(self,
+                                zone_id:int,
+                                ) -> bool:
+        """ set area off """
+        _ret, _idx = self._area_defined(id_search = zone_id)
+        if not _ret:
+            _LOGGER.error("Area not defined ...")
+            return False
+
+        ret = await self._client.async_set_area_state(id_zone = zone_id, val = const.ZoneState.STATE_OFF)
+        if not ret:
+            _LOGGER.error("Error writing area state (STATE_OFF) for area with ID: {}".format(zone_id))
+            return False
+        self._areas[_idx].state = const.ZoneState.STATE_OFF
+        return True
+    
+    async def async_set_area_on(self,
+                                zone_id:int,
+                                ) -> bool:
+        """ set area on """
+        _ret, _idx = self._area_defined(id_search = zone_id)
+        if not _ret:
+            _LOGGER.error("Area not defined ...")
+            return False
+
+        ret = await self._client.async_set_area_state(id_zone = zone_id, val = const.ZoneState.STATE_ON)
+        if not ret:
+            _LOGGER.error("Error writing area state (STATE_ON) for area with ID: {}".format(zone_id))
+            return False
+        self._areas[_idx].state = const.ZoneState.STATE_ON
+        return True
+
     async def async_set_area_clim_mode(self,
                                         zone_id:int, 
                                         mode:const.ZoneClimMode,
