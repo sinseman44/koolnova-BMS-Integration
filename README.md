@@ -1,11 +1,10 @@
 # koolnova-BMS-Integration
 
 [![HACS Badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
-[![License](https://img.shields.io/github/license/sinseman44/koolnovaBMS?style=for-the-badge)](https://github.com/koolnova-BMS-Integration/blob/main/LICENSE)
+[![License](https://img.shields.io/github/license/sinseman44/koolnovaBMS?style=for-the-badge)](https://github.com/sinseman44/koolnova-BMS-Integration/blob/main/LICENSE)
 [![Latest Release](https://img.shields.io/github/v/release/comtef/melzone-building?style=for-the-badge)](https://github.com/sinseman44/koolnova-BMS-Integration/releases)
 [![Size](https://img.badgesize.io/https:/github.com/comtef/melzone-building/releases/latest/download/melzone_building.zip?style=for-the-badge)](https://github.com/sinseman44/koolnova-BMS-Integration/releases)
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=sinseman44&repository=koolnova-BMS-Integration&category=integration)
-[![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=koolnova_BMS)
+<br />
 
 ![intro](png/areas_controls.png)
 
@@ -57,22 +56,23 @@ Modbus RTU (Remote Terminal Unit), makes use of a compact, binary representation
 
 ## Installation
 
-Install using HACS In HACS go to the three dots int the upper right corner choose add custom repository and add https://github.com/sinseman44/koolnova-BMS-Integration to the list.
+Install using HACS In HACS go to the three dots int the upper right corner choose add custom repository and add https://github.com/sinseman44/koolnova-BMS-Integration to the list.<br />
+Install manually Clone or copy this repository and copy the folder `custom_components/koolnova_bms` into `/custom_components/koolnova_bms`.<br />
 
-Install manually Clone or copy this repository and copy the folder `custom_components/koolnova_bms` into `/custom_components/koolnova_bms`
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=sinseman44&repository=koolnova-BMS-Integration&category=integration)
+[![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=koolnova_BMS)
 
 ## Home Assistant USB dongle recognition
 
-After plugging the USB dongle into the system, check that among the tty, it's recognized by Home Assistant.
-
-Example : ttyUSB0 is the node added for the device. The absolute path of this node (eg: /dev/ttyUSB0) will be used in the component configuration. 
+After plugging the USB dongle into the system, check that among the tty, it's recognized by Home Assistant.<br />
+Example : ttyUSB0 is the node added for the device. The absolute path of this node (eg: /dev/ttyUSB0) will be used in the component configuration.<br />
 
 ![HA_hardware](png/HA_hardware_tty.png)
 
 # Koolnova BMS Installation
 
 The first page after installing the component is the Modbus BMS configuration. All serial fields are filled with default values defined by Koolnova.<br />
-Adapt the fields according to your own configuration.
+Adapt the fields according to your own configuration.<br />
 
 ![HA_main_config](png/HA_config_Koolnova_BMS1.png)
 
