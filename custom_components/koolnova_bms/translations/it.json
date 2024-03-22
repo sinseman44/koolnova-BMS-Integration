@@ -1,0 +1,38 @@
+{
+    "title": "Koolnova BMS",
+    "config": {
+        "flow_title": "Configurazione BMS Koolnova",
+        "step": {
+            "user": {
+                "title": "Configurazione Client Modbus RTU",
+                "description": "Informazioni di connessione sul dispositivo Koolnova",
+                "data": {
+                    "Name": "Nome del dispositivo",
+                    "Device": "Dispositivo di comunicazione RS485 Modbus",
+                    "Address": "Indirizzo del dispositivo",
+                    "Baudrate": "Velocità Modbus",
+                    "Sizebyte": "Dimensione dei dati",
+                    "Parity": "Parità",
+                    "Stopbits": "Numero di bit di stop",
+                    "Timeout": "Timeout",
+                    "Debug": "Debug"
+                }
+            },
+            "areas": {
+                "title": "Configurazione di un'area",
+                "description": "Informazioni sull'area da configurare",
+                "data": {
+                    "Name": "Nome dell'area",
+                    "Area_id": "ID dell'area",
+                    "Other_area": "Aggiungi una nuova area"
+                }
+            }
+        },
+        "error": {
+            "cannot_connect": "Impossibile connettersi al sistema Koolnova",
+            "area_not_registered": "Questa area non è registrata nel sistema Koolnova",
+            "area_already_configured": "Questa area è già configurata",
+            "zone_id_error": "L'ID dell'area deve essere un numero compreso tra 1 e 16"
+        }
+    }
+}
