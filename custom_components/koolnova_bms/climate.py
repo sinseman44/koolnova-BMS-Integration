@@ -41,9 +41,6 @@ from homeassistant.const import (
 
 from .koolnova.device import Koolnova, Area
 from .koolnova.const import (
-    MIN_TEMP,
-    MAX_TEMP,
-    STEP_TEMP,
     MIN_TEMP_ORDER,
     MAX_TEMP_ORDER,
     STEP_TEMP_ORDER,
@@ -79,9 +76,9 @@ class AreaClimateEntity(CoordinatorEntity, ClimateEntity):
     _attr_fan_modes: list[str] = SUPPORTED_FAN_MODES
     _attr_hvac_mode: HVACMode = HVACMode.OFF
     _attr_fan_mode: str = FAN_OFF
-    _attr_min_temp: float = MIN_TEMP
-    _attr_max_temp: float = MAX_TEMP
-    _attr_precision: float = STEP_TEMP
+    _attr_min_temp: float = MIN_TEMP_ORDER
+    _attr_max_temp: float = MAX_TEMP_ORDER
+    _attr_precision: float = STEP_TEMP_ORDER
     _attr_target_temperature_high: float = MAX_TEMP_ORDER
     _attr_target_temperature_low: float = MIN_TEMP_ORDER
     _attr_target_temperature_step: float = STEP_TEMP_ORDER
