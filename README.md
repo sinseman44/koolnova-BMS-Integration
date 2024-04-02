@@ -86,6 +86,9 @@ Adapt the fields according to your own configuration.<br />
 
 After validation of the serial configuation, the component will test if it can communicate with the koolnova system. If not, an error occur.<br />
 <br />
+> [!WARNING]  
+> some users encountered a problem with the slave Modbus address. Enter address “1” instead of the default (49) and check if this validate this step.
+
 ## Area installation
 
 The next installation page is the area configuration.<br />
