@@ -205,8 +205,8 @@ class Engine:
         ''' Set order temp engine '''
         if not isinstance(val, float):
             raise AssertionError('Input variable must be Int')
-        if val > 0 and (val > 30.0 or val < 15.0):
-            raise OrderTempError('Flow Engine value ({}) must be between 15 and 30'.format(val))
+        if val > 0 and (val > 35.0 or val < 15.0):
+            raise OrderTempError('Flow Engine value ({}) must be between 15 and 35'.format(val))
         self._order_temp = val
 
     def __repr__(self) -> str:
