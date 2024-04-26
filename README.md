@@ -47,15 +47,25 @@ See [Github To Do & Bug List](https://github.com/sinseman44/koolnova-BMS-Integra
 ## Requirements
 
 * An installation of Home Assistant with free USB port.
-* A RS485 USB dongle.
-* A Koolnova air conditioning system (identifier: 100-CPNR00) with areas defined.
+* A RS485 USB dongle (Example: DSD Tech SH-U11).
+* A Koolnova air conditioning system (identifier: 100-CPNR00 or 100-CPND00) with areas defined.
 * Enabling Modbus communication on the master radio thermostat (INT 49).
 
 ![INT49](png/koolnova-smart_radio_INT_49.png)
 
 ## Connecting
 
+### with koolnova 100-CPNR00 control unit
+
 ![Schematic](png/koolnova-schematics.png)
+
+* Controller D+ to USB dongle A+
+* Controller D- to USB dongle B-
+* Controller GND to USB dongle GND
+
+### with koolnova 100-CPND00 control unit
+
+![Schematic](png/koolnova-schematics-100-CPND00.png)
 
 * Controller D+ to USB dongle A+
 * Controller D- to USB dongle B-
