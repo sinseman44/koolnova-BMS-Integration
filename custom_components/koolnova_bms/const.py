@@ -114,6 +114,9 @@ HVAC_TRANSLATION = {
     int(ZoneState.STATE_OFF): HVACMode.OFF,
     int(ZoneClimMode.COOL): HVACMode.COOL,
     int(ZoneClimMode.HEAT): HVACMode.HEAT,
+    int(ZoneClimMode.HEATING_FLOOR): HVACMode.HEAT,
+    int(ZoneClimMode.REFRESHING_FLOOR): HVACMode.COOL,
+    int(ZoneClimMode.HEATING_FLOOR_2): HVACMode.HEAT,
 }
 
 #FAN_MODE_1 = "1 Off"
