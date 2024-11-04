@@ -55,14 +55,18 @@ Two different architectures, a first wired one where the Koolnova system is conn
 
 ![Architecture](png/koolnova-architecture.png)
 
+_In IEEE 802.11 (Wi-Fi) terminology, a station (abbreviated as STA) is a device that has the capability to use the 802.11 protocol. For example, a station may be a laptop, a desktop PC, PDA, access point or Wi-Fi phone. An STA may be fixed, mobile or portable._
+
 ## Requirements
 
 * An installation of Home Assistant with free USB port.
-* A RS485 USB dongle (Example: DSD Tech SH-U11) for wired systems or a RS485/WIFI device (Example: Elfin EW11) for wireless systems.
+* A RS485 USB dongle (Example: DSD Tech SH-U11) for wired systems or a RS485/WIFI device (Example: Elfin EW11A or Elfin EW11-0) for wireless systems.
 * A Koolnova air conditioning system (identifier: 100-CPNR00 or 100-CPND00) with areas defined.
 * Enabling Modbus communication on the master radio thermostat (INT 49).
 
 ![INT49](png/koolnova-smart_radio_INT_49.png)
+
+⚠️ If you choose the RS485/WIFI device from Elfin, it must accept voltages between ___5v and 36v___.
 
 ## Connecting
 
