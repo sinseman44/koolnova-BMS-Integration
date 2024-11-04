@@ -103,7 +103,7 @@ Install manually Clone or copy this repository and copy the folder `custom_compo
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=sinseman44&repository=koolnova-BMS-Integration&category=integration)
 [![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=koolnova_bms)
 
-## Home Assistant USB dongle recognition
+## Home Assistant RS485/USB dongle recognition
 
 After plugging the USB dongle into the system, check that among the tty, it's recognized by Home Assistant.<br />
 Example : ttyUSB0 is the node added for the device. The absolute path of this node (eg: /dev/ttyUSB0) will be used in the component configuration.<br />
@@ -112,10 +112,20 @@ Example : ttyUSB0 is the node added for the device. The absolute path of this no
 
 # Koolnova BMS Installation
 
-The first page after installing the component is the Modbus BMS configuration. All serial fields are filled with default values defined by Koolnova.<br />
+The first page after installing the component is the choice of Modbus communication.
+* Modbus TCP (for wireless system)
+* Modbus RTU (for wired system)
+
+![HA_choice](png/koolnova_config_mode.png)
+
+Depending on the choice made, the next step is the Modbus RTU configuration or the Modbus TCP configuration.<br />
+
+## Koolnova RTU Installation
+
+All serial fields are filled with default values defined by Koolnova.<br />
 Adapt the fields according to your own configuration.<br />
 
-![HA_main_config](png/HA_config_Koolnova_BMS1.png)
+![HA_rtu_config](png/HA_config_Koolnova_BMS1.png)
 
 > [!NOTE]
 > Each control unit has a specific address (default 49). Possible addresses are 1 to 247.
@@ -124,6 +134,13 @@ After validation of the serial configuation, the component will test if it can c
 
 > [!WARNING]  
 > some users encountered a problem with the slave Modbus address. Enter address “1” instead of the default (49) and check if this validate this step.
+
+## Koolnova TCP Installation
+
+All fields are filled with default values.<br />
+Adapt the fields according to your own configuration.<br />
+
+![HA_tcp_config](png/koolnova_config_modbusTCP_infos.png)
 
 ## Area installation
 
