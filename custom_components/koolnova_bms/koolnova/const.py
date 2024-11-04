@@ -4,8 +4,8 @@
 from enum import Enum
 
 DEFAULT_MODE = 'Modbus RTU'
-DEFAULT_TCP_ADDR = '192.168.1.90'
-DEFAULT_TCP_PORT = 8899
+DEFAULT_TCP_ADDR = '0.0.0.0'
+DEFAULT_TCP_PORT = 502
 DEFAULT_TCP_RETRIES = 3
 DEFAULT_TCP_RECO_DELAY = 0.1
 DEFAULT_TCP_RECO_DELAY_MAX = 300.0
@@ -29,7 +29,7 @@ NB_ZONE_MAX = 16
 # donc le climat est défini par 64 registres
 REG_START_ZONE = 0
 
-# Commandes Modbus prises en charge sont le Read Holding Register (0x03) 
+# Commandes Modbus prises en charge sont le Read Holding Register (0x03)
 # et le Write Single Register (0x06)
 
 REG_LOCK_ZONE = 0 # 40001, 40005, 40009, etc ...
