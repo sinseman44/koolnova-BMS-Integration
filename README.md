@@ -66,7 +66,8 @@ _In IEEE 802.11 (Wi-Fi) terminology, a station (abbreviated as STA) is a device 
 
 ![INT49](png/koolnova-smart_radio_INT_49.png)
 
-⚠️ If you choose the RS485/WIFI device from Elfin, it must accept voltages between ___5v and 36v___.
+> [!WARNING]
+> If you choose the RS485/WIFI device from Elfin, it must accept voltages between ___5v and 36v___.
 
 ## Connecting
 
