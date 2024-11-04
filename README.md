@@ -34,6 +34,11 @@ Modbus over Serial Line has two transmission modes RTU and ASCII which are corre
 
 Modbus RTU (Remote Terminal Unit), makes use of a compact, binary representation of the data for protocol communication. The RTU format follows the commands/data with a cyclic redundancy check checksum as an error check mecahnism to ensure the reliability of data.
 
+## Modbus TCP
+
+Modbus TCP/IP (also Modbus-TCP) is simply the Modbus RTU protocol with a TCP interface that runs on Ethernet.
+Modbus TCP/IP uses TCP/IP and Ethernet to carry the data of the Modbus message structure between compatible devices. That is, Modbus TCP/IP combines a physical network (Ethernet), with a networking standard (TCP/IP), and a standard method of representing data (Modbus as the application protocol). Essentially, the Modbus TCP/IP message is simply a Modbus communication encapsulated in an Ethernet TCP/IP wrapper. 
+
 # Support
 
 <a href="https://www.buymeacoffee.com/sinseman44" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 40px !important;width: 145px !important;" ></a>
@@ -47,7 +52,7 @@ See [Github To Do & Bug List](https://github.com/sinseman44/koolnova-BMS-Integra
 ## Requirements
 
 * An installation of Home Assistant with free USB port.
-* A RS485 USB dongle (Example: DSD Tech SH-U11).
+* A RS485 USB dongle (Example: DSD Tech SH-U11) for wired systems or a RS485/WIFI device (Example: Elfin EW11) for wireless systems.
 * A Koolnova air conditioning system (identifier: 100-CPNR00 or 100-CPND00) with areas defined.
 * Enabling Modbus communication on the master radio thermostat (INT 49).
 
@@ -55,7 +60,7 @@ See [Github To Do & Bug List](https://github.com/sinseman44/koolnova-BMS-Integra
 
 ## Connecting
 
-### with koolnova 100-CPNR00 control unit
+### with koolnova 100-CPNR00 control unit and RS485 USB Dongle
 
 ![Schematic](png/koolnova-schematics.png)
 
@@ -63,13 +68,22 @@ See [Github To Do & Bug List](https://github.com/sinseman44/koolnova-BMS-Integra
 * Controller D- to USB dongle B-
 * Controller GND to USB dongle GND
 
-### with koolnova 100-CPND00 control unit
+### with koolnova 100-CPND00 control unit and RS485 USB Dongle
 
 ![Schematic](png/koolnova-schematics-100-CPND00.png)
 
 * Controller D+ to USB dongle A+
 * Controller D- to USB dongle B-
 * Controller GND to USB dongle GND
+
+### with koolnova 100-CPNR00 control unit and RS485/WIFI device
+
+![Schematic](png/koolnova-schematics_elfin_EW11.png)
+
+* Controller D+ to RS485/WIFI module A+
+* Controller D- to RS485/WIFI module B-
+* Controller GND to RS485/WIFI module GND
+* Controller +24 to RS485/WIFI module VCC
 
 ## Installation
 
