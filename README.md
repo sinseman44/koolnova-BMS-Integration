@@ -49,6 +49,12 @@ See [Github To Do & Bug List](https://github.com/sinseman44/koolnova-BMS-Integra
 
 # Getting Started
 
+## Architecture
+
+Two different architectures, a first wired one where the Koolnova system is connected to the Home Assistant server via a USB/RS485 dongle and a second one wirelessly, the Koolnova system is connected to the RS485/WIFI device which is connected to the same WIFI network as the Home Assistant server.
+
+![Architecture](png/koolnova-architecture.png)
+
 ## Requirements
 
 * An installation of Home Assistant with free USB port.
