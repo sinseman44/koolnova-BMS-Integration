@@ -4,6 +4,13 @@
         "flow_title": "Configurazione BMS Koolnova",
         "step": {
             "user": {
+                "title": "Modalità di comunicazione Modbus",
+                "description": "Scegli la modalità di comunicazione in base al tipo di connessione con il controller Koolnova",
+                "data": {
+                    "Mode": "Moda"
+                }
+            },
+            "rtu": {
                 "title": "Configurazione Client Modbus RTU",
                 "description": "Informazioni di connessione sul dispositivo Koolnova",
                 "data": {
@@ -14,6 +21,20 @@
                     "Sizebyte": "Dimensione dei dati",
                     "Parity": "Parità",
                     "Stopbits": "Numero di bit di stop",
+                    "Timeout": "Timeout",
+                    "Debug": "Debug"
+                }
+            },
+            "tcp": {
+                "title": "Configurazione Client Modbus TCP",
+                "description": "Informazioni di connessione sul dispositivo Koolnova",
+                "data": {
+                    "Name": "Nome del dispositivo",
+                    "Address": "Indirizzo del dispositivo",
+                    "Port": "porta di comunicazione",
+                    "Retries": "Numero di tentativi di riconnessione",
+                    "Reconnect_delay_min": "Tempo minimo di riconnessione",
+                    "Reconnect_delay_max": "Tempo massimo di riconnessione",
                     "Timeout": "Timeout",
                     "Debug": "Debug"
                 }

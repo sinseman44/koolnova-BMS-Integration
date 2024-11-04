@@ -1,4 +1,4 @@
-""" Initialisation du package de l'intégration TestVBE_4 """
+""" Initialisation du package de l'intégration Koolnova """
 
 import logging
 
@@ -18,25 +18,44 @@ async def async_setup_entry(hass: HomeAssistant,
     """ Creation des entités à partir d'une configEntry """
 
     hass.data.setdefault(DOMAIN, {})
-    
+    device:Koolnova = None
+    debug:bool = entry.data['Debug']
+    timeout:int = entry.data['Timeout']
     name: str = entry.data['Name']
-    port: str = entry.data['Device']
-    addr: int = entry.data['Address']
-    baudrate: int = entry.data['Baudrate']
-    parity: str = entry.data['Parity'][0]
-    bytesize: int = entry.data['Sizebyte']
-    stopbits: int = entry.data['Stopbits']
-    timeout: int = entry.data['Timeout']
-    _LOGGER.debug("name:{} - port:{} - addr:{} - baudrate:{} - parity: {} - bytesize:{} - stopbits:{} - timeout:{}".format(name,
-                                                                                                                        port,
-                                                                                                                        addr,
-                                                                                                                        baudrate,
-                                                                                                                        parity,
-                                                                                                                        bytesize,
-                                                                                                                        stopbits,
-                                                                                                                        timeout))
+    if entry.data['Mode'] == 'Modbus RTU':
+        port: str = entry.data['Device']
+        addr: int = entry.data['Address']
+        baudrate: int = entry.data['Baudrate']
+        parity: str = entry.data['Parity'][0]
+        bytesize: int = entry.data['Sizebyte']
+        stopbits: int = entry.data['Stopbits']
+        device = Koolnova(name,
+                            port,
+                            addr,
+                            baudrate,
+                            parity,
+                            bytesize,
+                            stopbits,
+                            debug,
+                            timeout)
+    elif entry.data['Mode'] == 'Modbus TCP':
+        port:int = entry.data['Port']
+        addr:str = entry.data['Address']
+        retries:int = entry.data['Retries']
+        reco_delay_min:float = entry.data['Reconnect_delay_min']
+        reco_delay_max:float = entry.data['Reconnect_delay_max']
+        device = Koolnova(name, 
+                            port,
+                            addr,
+                            retries,
+                            reco_delay_min,
+                            reco_delay_max,
+                            debug, 
+                            timeout)
+    else:
+        _LOGGER.error("Integration initialisation failed (Mode unknown)")
+        return False
     try:
-        device = Koolnova(name, port, addr, baudrate, parity, bytesize, stopbits, timeout)
         # connect to modbus client
         ret = await device.async_connect()
         if not ret:

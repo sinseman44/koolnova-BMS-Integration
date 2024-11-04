@@ -7,6 +7,7 @@ import asyncio
 
 from pymodbus import pymodbus_apply_logging_config
 from pymodbus.client import AsyncModbusSerialClient as ModbusClient
+from pymodbus.client import AsyncModbusTcpClient as ModbusTcpClient
 from pymodbus.exceptions import ModbusException
 from pymodbus.pdu import ExceptionResponse
 from pymodbus.transaction import ModbusRtuFramer
@@ -62,13 +63,38 @@ class Operations:
         if debug:
             pymodbus_apply_logging_config("DEBUG")
 
+    def __init__(self,
+                addr:str=const.DEFAULT_TCP_ADDR,
+                port:int=const.DEFAULT_TCP_PORT,
+                retries:int=const.DEFAULT_TCP_RETRIES,
+                reco_delay_min:float=const.DEFAULT_TCP_RECO_DELAY,
+                reco_delay_max:float=const.DEFAULT_TCP_RECO_DELAY_MAX,
+                timeout:int=3,
+                debug:bool=False) -> None:
+        ''' Class constructor for TCP '''
+        self._port = port
+        self._timeout = timeout
+        self._addr = 1 # Modbus slave ID for the operations
+        self._retries = retries
+        self._reco_delay_min = reco_delay_min
+        self._reco_delay_max = reco_delay_max
+        self._client = ModbusTcpClient(host=addr,
+                                        port=self._port,
+                                        name="koolnovaTCP",
+                                        retries=self._retries,
+                                        reconnect_delay=self._reco_delay_min,
+                                        reconnect_delay_max=self._reco_delay_max,
+                                        timeout=self._timeout)
+        if debug:
+            pymodbus_apply_logging_config("DEBUG")
+
     async def __async_read_register(self, reg:int) -> (int, bool):
         ''' Read one holding register (code 0x03) '''
         rr = None
         if not self._client.connected:
             raise ModbusConnexionError('Client Modbus not connected')
         try:
-            _LOGGER.debug("reading holding register: {} - Addr: {}".format(hex(reg), self._addr))
+            _LOGGER.debug("reading holding register: {} - Slave: {}".format(hex(reg), self._addr))
             rr = await self._client.read_holding_registers(address=reg, count=1, slave=self._addr)
             if rr.isError():
                 _LOGGER.error("reading holding register error")
@@ -114,7 +140,7 @@ class Operations:
         if not self._client.connected:
             raise ModbusConnexionError('Client Modbus not connected')
         try:
-            _LOGGER.debug("writing single register: {} - Addr: {} - Val: {}".format(hex(reg), self._addr, hex(val)))
+            _LOGGER.debug("writing single register: {} - Slave: {} - Val: {}".format(hex(reg), self._addr, hex(val)))
             rq = await self._client.write_register(address=reg, value=val, slave=self._addr)
             if rq.isError():
                 _LOGGER.error("writing register error")
@@ -144,7 +170,7 @@ class Operations:
     async def async_discover_registered_areas(self) -> list:
         ''' Discover all areas registered to the system '''
         regs, ret = await self.__async_read_registers(start_reg=const.REG_START_ZONE, 
-                                                count=const.NB_ZONE_MAX * const.NUM_REG_PER_ZONE)
+                                                        count=const.NB_ZONE_MAX * const.NUM_REG_PER_ZONE)
         if not ret:
             raise ReadRegistersError("Read holding regsiter error")
         zones_lst = []
@@ -218,6 +244,14 @@ class Operations:
             _area_dict['real_temp'] = regs[_idx + const.REG_TEMP_REAL]/2
             _areas_dict[area_idx + 1] = _area_dict
         return True, _areas_dict
+
+    async def async_set_debug(self, val:bool) -> bool:
+        ''' Set/Reset Debug Mode '''
+        if val:
+            pymodbus_apply_logging_config("DEBUG")
+        else:
+            pymodbus_apply_logging_config("INFO")
+        return True
 
     async def async_system_status(self) -> (bool, const.SysState):
         ''' Read system status register '''

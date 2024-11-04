@@ -3,6 +3,12 @@
 
 from enum import Enum
 
+DEFAULT_MODE = 'Modbus RTU'
+DEFAULT_TCP_ADDR = '192.168.1.90'
+DEFAULT_TCP_PORT = 8899
+DEFAULT_TCP_RETRIES = 3
+DEFAULT_TCP_RECO_DELAY = 0.1
+DEFAULT_TCP_RECO_DELAY_MAX = 300.0
 # La couche physique est Modbus RTU sur RS485 à 9600, avec 8 bits de données, sans parité
 # ou même parité et un bit d'arrêt. Par défaut: 9600 8E1
 # L'adresse Modbus par défaut est 49
