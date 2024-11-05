@@ -1,5 +1,7 @@
 # Koolnova RTU Simulator
 
+![simulator](../png/koolnova-simulator.png)
+
 ```
 usage: koolnova_simulator.py [-h] [--log {critical,error,warning,info,debug}] [--config CONFIG]
 
