@@ -217,8 +217,9 @@ The following parameters can be controlled for the `select` platform entities:
 
 ## Switch
 
-The following parameter can be controlled for the `switch` platform entitie:
+The following parameters can be controlled for the `switch` platform entitie:
 - Global HVAC State (stopped or running)
+- Modbus Debug (stopped or running)
 
 # Debugging
 
