@@ -169,11 +169,23 @@ The following parameters can be controlled for the `climate` platform entities:
 - Fan mode (HVAC mode)
 
 ## Sensor (Diagnostic)
-
+### for RTU mode
 ![koolnova_diags](png/koolnova_diags.png)
 
 The following attributes are available for diagnostic `sensor` platform entities:
 - Modbus serial (Device, Address, port, ...)
+- Target temperature (celcius) and throughput for each engine (maximum 4):
+  - Target temperature: Min: 15°C -> Max: 35°C
+  - Troughput: int value between 0 (engine stopped) to 15 (maximum troughput)
+
+- Target temperature (celcius) for each area:
+  - 0°C to 50°C
+
+### for TCP mode
+![koolnova_diags](png/koolnova_diagnostic_tcp.png)
+
+The following attributes are available for diagnostic `sensor` platform entities:
+- Network settings (Address, port)
 - Target temperature (celcius) and throughput for each engine (maximum 4):
   - Target temperature: Min: 15°C -> Max: 35°C
   - Troughput: int value between 0 (engine stopped) to 15 (maximum troughput)
