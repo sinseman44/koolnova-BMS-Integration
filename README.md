@@ -60,7 +60,7 @@ _In IEEE 802.11 (Wi-Fi) terminology, a station (abbreviated as STA) is a device 
 ## Requirements
 
 * An installation of Home Assistant with free USB port.
-* A RS485 USB dongle (Example: DSD Tech SH-U11) for wired systems or a RS485/WIFI device (Example: Elfin EW11A or Elfin EW11-0) for wireless systems.
+* A RS485 USB dongle (Example: DSD Tech SH-U11) for wired systems or a RS485/WIFI device (Example: Elfin EW11A or Elfin EW11-0, [example of configuration](EW11-config.md)) for wireless systems.
 * A Koolnova air conditioning system (identifier: 100-CPNR00 or 100-CPND00) with areas defined.
 * Enabling Modbus communication on the master radio thermostat (INT 49).
 
