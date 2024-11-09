@@ -249,6 +249,7 @@ class Koolnova:
                 name:str = "",
                 port:int = const.DEFAULT_TCP_PORT,
                 addr:str = const.DEFAULT_TCP_ADDR,
+                modbus:int = const.DEFAULT_ADDR,
                 retries:int = const.DEFAULT_TCP_RETRIES,
                 reco_delay_min:float = const.DEFAULT_TCP_RECO_DELAY,
                 reco_delay_max:float = const.DEFAULT_TCP_RECO_DELAY_MAX,
@@ -257,6 +258,7 @@ class Koolnova:
         ''' Class constructor for TCP '''
         self._client = Operations(addr=addr,
                                     port=port,
+                                    modbus=modbus,
                                     retries=retries,
                                     reco_delay_min=reco_delay_min,
                                     reco_delay_max=reco_delay_max,

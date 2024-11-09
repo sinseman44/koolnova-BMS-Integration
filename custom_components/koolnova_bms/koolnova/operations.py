@@ -66,6 +66,7 @@ class Operations:
     def __init__(self,
                 addr:str=const.DEFAULT_TCP_ADDR,
                 port:int=const.DEFAULT_TCP_PORT,
+                modbus:int=const.DEFAULT_ADDR,
                 retries:int=const.DEFAULT_TCP_RETRIES,
                 reco_delay_min:float=const.DEFAULT_TCP_RECO_DELAY,
                 reco_delay_max:float=const.DEFAULT_TCP_RECO_DELAY_MAX,
@@ -74,7 +75,7 @@ class Operations:
         ''' Class constructor for TCP '''
         self._port = port
         self._timeout = timeout
-        self._addr = 1 # Modbus slave ID for the operations
+        self._addr = modbus # Modbus slave ID for the operations
         self._retries = retries
         self._reco_delay_min = reco_delay_min
         self._reco_delay_max = reco_delay_max
@@ -117,6 +118,7 @@ class Operations:
         if not self._client.connected:
             raise ModbusConnexionError('Client Modbus not connected')
         try:
+            _LOGGER.debug("reading holding registers: {} - count: {} - Slave: {}".format(hex(start_reg), count, self._addr))
             rr = await self._client.read_holding_registers(address=start_reg, count=count, slave=self._addr)
             if rr.isError():
                 _LOGGER.error("reading holding registers error")

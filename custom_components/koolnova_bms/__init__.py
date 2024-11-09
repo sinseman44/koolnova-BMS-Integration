@@ -29,29 +29,31 @@ async def async_setup_entry(hass: HomeAssistant,
         parity: str = entry.data['Parity'][0]
         bytesize: int = entry.data['Sizebyte']
         stopbits: int = entry.data['Stopbits']
-        device = Koolnova(name,
-                            port,
-                            addr,
-                            baudrate,
-                            parity,
-                            bytesize,
-                            stopbits,
-                            debug,
-                            timeout)
+        device = Koolnova(name=name,
+                            port=port,
+                            addr=addr,
+                            baudrate=baudrate,
+                            parity=parity,
+                            bytesize=bytesize,
+                            stopbits=stopbits,
+                            debug=debug,
+                            timeout=timeout)
     elif entry.data['Mode'] == 'Modbus TCP':
         port:int = entry.data['Port']
         addr:str = entry.data['Address']
+        modbus:int = entry.data['Modbus']
         retries:int = entry.data['Retries']
         reco_delay_min:float = entry.data['Reconnect_delay_min']
         reco_delay_max:float = entry.data['Reconnect_delay_max']
-        device = Koolnova(name, 
-                            port,
-                            addr,
-                            retries,
-                            reco_delay_min,
-                            reco_delay_max,
-                            debug, 
-                            timeout)
+        device = Koolnova(name=name,
+                            port=port,
+                            addr=addr,
+                            modbus=modbus,
+                            retries=retries,
+                            reco_delay_min=reco_delay_min,
+                            reco_delay_max=reco_delay_max,
+                            debug=debug,
+                            timeout=timeout)
     else:
         _LOGGER.error("Integration initialisation failed (Mode unknown)")
         return False

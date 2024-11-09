@@ -30,6 +30,7 @@
                 "description": "Informations de connexion sur le système Koolnova",
                 "data": {
                     "Name": "Nom de l'appareil",
+                    "Modbus": "Adresse Modbus de l'appareil",
                     "Address": "Adresse de communication",
                     "Port": "Port de communication",
                     "Retries": "Nombre de tentatives de reconnexion",

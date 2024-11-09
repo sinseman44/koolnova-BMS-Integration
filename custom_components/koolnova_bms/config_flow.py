@@ -81,6 +81,7 @@ class KoolnovaConfigFlow(ConfigFlow, domain=DOMAIN):
         tcp_form = vol.Schema( #pylint: disable=invalid-name
             {
                 vol.Required("Name", default="koolnova"): vol.Coerce(str),
+                vol.Required("Modbus", default=DEFAULT_ADDR): vol.Coerce(int),
                 vol.Required("Address", default=DEFAULT_TCP_ADDR): vol.Coerce(str),
                 vol.Required("Port", default=DEFAULT_TCP_PORT): vol.Coerce(int),
                 vol.Required("Retries", default=DEFAULT_TCP_RETRIES): vol.Coerce(int),
@@ -95,6 +96,7 @@ class KoolnovaConfigFlow(ConfigFlow, domain=DOMAIN):
             self._user_inputs.update(user_input)
             self._conn = Operations(addr=self._user_inputs["Address"],
                                     port=self._user_inputs["Port"],
+                                    modbus=self._user_inputs["Modbus"],
                                     retries=self._user_inputs["Retries"],
                                     reco_delay_min=self._user_inputs["Reconnect_delay_min"],
                                     reco_delay_max=self._user_inputs["Reconnect_delay_max"],
