@@ -17,6 +17,13 @@ The Elfin-EW11 using highly integrated hardware and software platform, it has be
 * Support Webpage OTA Wirelss Upgrade
 * Support Internal PCB Antenna
 
+## First use
+
+* Connect to dongle wifi
+* Go to the web interface 10.10.100.254
+* Default Login: __admin__ and default password: __admin__
+* Change settings to connect to your wifi network
+
 ## STA Mode
 
 Product can be set as a wireless STA and AP as well. And logically, it supports two wireless interfaces, one is used as STA and the other is AP.<br />
