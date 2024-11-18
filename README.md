@@ -34,6 +34,11 @@ Modbus over Serial Line has two transmission modes RTU and ASCII which are corre
 
 Modbus RTU (Remote Terminal Unit), makes use of a compact, binary representation of the data for protocol communication. The RTU format follows the commands/data with a cyclic redundancy check checksum as an error check mecahnism to ensure the reliability of data.
 
+## Modbus TCP
+
+Modbus TCP/IP (also Modbus-TCP) is simply the Modbus RTU protocol with a TCP interface that runs on Ethernet.
+Modbus TCP/IP uses TCP/IP and Ethernet to carry the data of the Modbus message structure between compatible devices. That is, Modbus TCP/IP combines a physical network (Ethernet), with a networking standard (TCP/IP), and a standard method of representing data (Modbus as the application protocol). Essentially, the Modbus TCP/IP message is simply a Modbus communication encapsulated in an Ethernet TCP/IP wrapper. 
+
 # Support
 
 <a href="https://www.buymeacoffee.com/sinseman44" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 40px !important;width: 145px !important;" ></a>
@@ -44,18 +49,29 @@ See [Github To Do & Bug List](https://github.com/sinseman44/koolnova-BMS-Integra
 
 # Getting Started
 
+## Architecture
+
+Two different architectures, a first wired one where the Koolnova system is connected to the Home Assistant server via a USB/RS485 dongle and a second one wirelessly, the Koolnova system is connected to the RS485/WIFI device which is connected to the same WIFI network as the Home Assistant server.
+
+![Architecture](png/koolnova-architecture.png)
+
+_In IEEE 802.11 (Wi-Fi) terminology, a station (abbreviated as STA) is a device that has the capability to use the 802.11 protocol. For example, a station may be a laptop, a desktop PC, PDA, access point or Wi-Fi phone. An STA may be fixed, mobile or portable._
+
 ## Requirements
 
 * An installation of Home Assistant with free USB port.
-* A RS485 USB dongle (Example: DSD Tech SH-U11).
+* A RS485 USB dongle (Example: DSD Tech SH-U11) for wired systems or a RS485/WIFI device (Example: Elfin EW11A or Elfin EW11-0, [example of configuration](EW11-config.md)) for wireless systems.
 * A Koolnova air conditioning system (identifier: 100-CPNR00 or 100-CPND00) with areas defined.
 * Enabling Modbus communication on the master radio thermostat (INT 49).
 
 ![INT49](png/koolnova-smart_radio_INT_49.png)
 
+> [!WARNING]
+> If you choose the RS485/WIFI device from Elfin, it must accept voltages between ___5v and 36v___.
+
 ## Connecting
 
-### with koolnova 100-CPNR00 control unit
+### with koolnova 100-CPNR00 control unit and RS485 USB Dongle
 
 ![Schematic](png/koolnova-schematics.png)
 
@@ -63,13 +79,22 @@ See [Github To Do & Bug List](https://github.com/sinseman44/koolnova-BMS-Integra
 * Controller D- to USB dongle B-
 * Controller GND to USB dongle GND
 
-### with koolnova 100-CPND00 control unit
+### with koolnova 100-CPND00 control unit and RS485 USB Dongle
 
 ![Schematic](png/koolnova-schematics-100-CPND00.png)
 
 * Controller D+ to USB dongle A+
 * Controller D- to USB dongle B-
 * Controller GND to USB dongle GND
+
+### with koolnova 100-CPNR00 control unit and RS485/WIFI device
+
+![Schematic](png/koolnova-schematics_elfin_EW11.png)
+
+* Controller D+ to RS485/WIFI module A+
+* Controller D- to RS485/WIFI module B-
+* Controller GND to RS485/WIFI module GND
+* Controller +24 to RS485/WIFI module VCC
 
 ## Installation
 
@@ -79,7 +104,7 @@ Install manually Clone or copy this repository and copy the folder `custom_compo
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=sinseman44&repository=koolnova-BMS-Integration&category=integration)
 [![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=koolnova_bms)
 
-## Home Assistant USB dongle recognition
+## Home Assistant RS485/USB dongle recognition
 
 After plugging the USB dongle into the system, check that among the tty, it's recognized by Home Assistant.<br />
 Example : ttyUSB0 is the node added for the device. The absolute path of this node (eg: /dev/ttyUSB0) will be used in the component configuration.<br />
@@ -88,10 +113,20 @@ Example : ttyUSB0 is the node added for the device. The absolute path of this no
 
 # Koolnova BMS Installation
 
-The first page after installing the component is the Modbus BMS configuration. All serial fields are filled with default values defined by Koolnova.<br />
+The first page after installing the component is the choice of Modbus communication.
+* Modbus TCP (for wireless system)
+* Modbus RTU (for wired system)
+
+![HA_choice](png/koolnova_config_mode.png)
+
+Depending on the choice made, the next step is the Modbus RTU configuration or the Modbus TCP configuration.<br />
+
+## Koolnova RTU Installation
+
+All serial fields are filled with default values defined by Koolnova.<br />
 Adapt the fields according to your own configuration.<br />
 
-![HA_main_config](png/HA_config_Koolnova_BMS1.png)
+![HA_rtu_config](png/HA_config_Koolnova_BMS1.png)
 
 > [!NOTE]
 > Each control unit has a specific address (default 49). Possible addresses are 1 to 247.
@@ -100,6 +135,13 @@ After validation of the serial configuation, the component will test if it can c
 
 > [!WARNING]  
 > some users encountered a problem with the slave Modbus address. Enter address “1” instead of the default (49) and check if this validate this step.
+
+## Koolnova TCP Installation
+
+All fields are filled with default values.<br />
+Adapt the fields according to your own configuration.<br />
+
+![HA_tcp_config](png/koolnova_config_modbusTCP_infos.png)
 
 ## Area installation
 
@@ -127,11 +169,23 @@ The following parameters can be controlled for the `climate` platform entities:
 - Fan mode (HVAC mode)
 
 ## Sensor (Diagnostic)
-
+### for RTU mode
 ![koolnova_diags](png/koolnova_diags.png)
 
 The following attributes are available for diagnostic `sensor` platform entities:
 - Modbus serial (Device, Address, port, ...)
+- Target temperature (celcius) and throughput for each engine (maximum 4):
+  - Target temperature: Min: 15°C -> Max: 35°C
+  - Troughput: int value between 0 (engine stopped) to 15 (maximum troughput)
+
+- Target temperature (celcius) for each area:
+  - 0°C to 50°C
+
+### for TCP mode
+![koolnova_diags](png/koolnova_diagnostic_tcp.png)
+
+The following attributes are available for diagnostic `sensor` platform entities:
+- Network settings (Address, port)
 - Target temperature (celcius) and throughput for each engine (maximum 4):
   - Target temperature: Min: 15°C -> Max: 35°C
   - Troughput: int value between 0 (engine stopped) to 15 (maximum troughput)
@@ -163,8 +217,9 @@ The following parameters can be controlled for the `select` platform entities:
 
 ## Switch
 
-The following parameter can be controlled for the `switch` platform entitie:
+The following parameters can be controlled for the `switch` platform entitie:
 - Global HVAC State (stopped or running)
+- Modbus Debug (stopped or running)
 
 # Debugging
 

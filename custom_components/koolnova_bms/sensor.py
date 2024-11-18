@@ -47,14 +47,18 @@ async def async_setup_entry(hass: HomeAssistant,
     """ Configuration des entités sensor à partir de la configuration
         ConfigEntry passée en argument
     """
-
+    entities = []
     device = hass.data[DOMAIN]["device"]
     coordinator = hass.data[DOMAIN]["coordinator"]
-    entities = [
-        DiagnosticsSensor(device, "Device", entry.data),
-        DiagnosticsSensor(device, "Address", entry.data),
-        DiagModbusSensor(device, entry.data),
-    ]
+    if entry.data.get("Mode") == "Modbus RTU":
+        entities.append(DiagnosticsSensor(device, "Device", entry.data))
+        entities.append(DiagnosticsSensor(device, "Address", entry.data))
+        entities.append(DiagModbusSensor(device, entry.data))
+    elif entry.data.get("Mode") == "Modbus TCP":
+        entities.append(DiagModbusSensor(device, entry.data))
+    else:
+        _LOGGER.error("Mode unknown")
+
     for engine in device.engines:
         entities.append(DiagEngineThroughputSensor(coordinator, device, engine))
         entities.append(DiagEngineTempOrderSensor(coordinator, device, engine))
@@ -100,14 +104,19 @@ class DiagModbusSensor(SensorEntity):
                     ) -> None:
         """ Class constructor """
         self._device = device
-        self._attr_name = f"{device.name} Modbus RTU"
         self._attr_entity_registry_enabled_default = True
         self._attr_device_info = self._device.device_info
         self._attr_unique_id = f"{DOMAIN}-Modbus-RTU-sensor"
-        self._attr_native_value = "{} {}{}{}".format(entry_infos.get("Baudrate"),
+        if entry_infos.get("Mode") == 'Modbus RTU':
+            self._attr_name = f"{device.name} Modbus RTU"
+            self._attr_native_value = "{} {}{}{}".format(entry_infos.get("Baudrate"),
                                                         entry_infos.get("Sizebyte"),
                                                         entry_infos.get("Parity")[0],
                                                         entry_infos.get("Stopbits"))
+        elif entry_infos.get("Mode") == 'Modbus TCP':
+            self._attr_name = f"{device.name} Modbus TCP"
+            self._attr_native_value = "{}:{}".format(entry_infos.get("Address"),
+                                                        entry_infos.get("Port"))
 
     @property
     def icon(self) -> str | None:

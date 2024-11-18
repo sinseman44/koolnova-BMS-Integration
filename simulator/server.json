@@ -1,0 +1,180 @@
+{
+   "server_list": {
+        "server": {
+            "comm": "serial",
+            "port": "/dev/ttyUSB0",
+            "stopbits": 1,
+            "bytesize": 8,
+            "parity": "N",
+            "baudrate": 9600,
+            "timeout": 3,
+            "reconnect_delay": 2,
+            "framer": "rtu",
+            "identity": {
+                "VendorName": "Sinseman44",
+                "ProductCode": "PM",
+                "VendorUrl": "https://github.com/sinseman44/koolnova-BMS-Integration/",
+                "ProductName": "Koolnova Modbus RTU Sim",
+                "ModelName": "Modbus RTU Sim",
+                "MajorMinorRevision": "1.0.0"
+            }
+        }
+    },
+    "device_list": {
+        "device": {
+            "setup": {
+                "co size": 100,
+                "di size": 100,
+                "hr size": 100,
+                "ir size": 100,
+                "shared blocks": true,
+                "type exception": true,
+                "defaults": {
+                    "value": {
+                        "bits": 0,
+                        "uint16": 0,
+                        "uint32": 0,
+                        "float32": 0.0,
+                        "string": " "
+                    },
+                    "action": {
+                        "bits": null,
+                        "uint16": null,
+                        "uint32": null,
+                        "float32": null,
+                        "string": null
+                    }
+                }
+            },
+            "invalid": [],
+            "write": [
+               	[0, 2], 
+		[4, 6],
+		[8, 10],
+		[12, 14],
+		[16, 18],
+		[20, 22],
+		[24, 26],
+		[28, 30],
+		[32, 34],
+		[36, 38],
+		[40, 42],
+		[44, 46],
+		[48, 50],
+		[52, 54],
+		[56, 58],
+		[60, 62],
+		[72, 75],
+		[76, 81]
+            ],
+	    "bits": [],
+            "uint16": [
+                {"addr": 0, "value": 3, "action": null},
+                {"addr": 1, "value": 66, "action": null},
+                {"addr": 2, "value": 43, "action": "random", "parameters": {"minval": 30,"maxval": 70}},
+                {"addr": 3, "value": 43, "action": "increment", "parameters": {"minval": 0, "maxval": 100}},
+
+                {"addr": 4, "value": 3, "action": null},
+                {"addr": 5, "value": 66, "action": null},
+                {"addr": 6, "value": 47, "action": "random", "parameters": {"minval": 30,"maxval": 70}},
+                {"addr": 7, "value": 47, "action": "increment", "parameters": {"minval": 0, "maxval": 100}},
+
+                {"addr": 8, "value": 3, "action": null},
+                {"addr": 9, "value": 66, "action": null},
+                {"addr": 10, "value": 51, "action": "random", "parameters": {"minval": 30,"maxval": 70}},
+                {"addr": 11, "value": 51, "action": "increment", "parameters": {"minval": 0, "maxval": 100}},
+
+                {"addr": 12, "value": 3, "action": null},
+                {"addr": 13, "value": 66, "action": null},
+                {"addr": 14, "value": 55, "action": "random", "parameters": {"minval": 30,"maxval": 70}},
+                {"addr": 15, "value": 55, "action": "increment", "parameters": {"minval": 0, "maxval": 100}},
+
+                {"addr": 16, "value": 3, "action": null},
+                {"addr": 17, "value": 66, "action": null},
+                {"addr": 18, "value": 59, "action": "random", "parameters": {"minval": 30,"maxval": 70}},
+                {"addr": 19, "value": 59, "action": "increment", "parameters": {"minval": 0, "maxval": 100}},
+
+                {"addr": 20, "value": 3, "action": null},
+                {"addr": 21, "value": 66, "action": null},
+                {"addr": 22, "value": 63, "action": "random", "parameters": {"minval": 30,"maxval": 70}},
+                {"addr": 23, "value": 63, "action": "increment", "parameters": {"minval": 0, "maxval": 100}},
+
+                {"addr": 24, "value": 3, "action": null},
+                {"addr": 25, "value": 66, "action": null},
+                {"addr": 26, "value": 63, "action": "random", "parameters": {"minval": 30,"maxval": 70}},
+                {"addr": 27, "value": 63, "action": "increment", "parameters": {"minval": 0, "maxval": 100}},
+
+                {"addr": 28, "value": 3, "action": null},
+                {"addr": 29, "value": 66, "action": null},
+                {"addr": 30, "value": 63, "action": "random", "parameters": {"minval": 30,"maxval": 70}},
+                {"addr": 31, "value": 63, "action": "increment", "parameters": {"minval": 0, "maxval": 100}},
+
+                {"addr": 32, "value": 3, "action": null},
+                {"addr": 33, "value": 66, "action": null},
+                {"addr": 34, "value": 63, "action": "random", "parameters": {"minval": 30,"maxval": 70}},
+                {"addr": 35, "value": 63, "action": "increment", "parameters": {"minval": 0, "maxval": 100}},
+
+                {"addr": 36, "value": 3, "action": null},
+                {"addr": 37, "value": 66, "action": null},
+                {"addr": 38, "value": 63, "action": "random", "parameters": {"minval": 30,"maxval": 70}},
+                {"addr": 39, "value": 63, "action": "increment", "parameters": {"minval": 0, "maxval": 100}},
+
+                {"addr": 40, "value": 3, "action": null},
+                {"addr": 41, "value": 66, "action": null},
+                {"addr": 42, "value": 63, "action": "random", "parameters": {"minval": 30,"maxval": 70}},
+                {"addr": 43, "value": 63, "action": "increment", "parameters": {"minval": 0, "maxval": 100}},
+
+                {"addr": 44, "value": 3, "action": null},
+                {"addr": 45, "value": 66, "action": null},
+                {"addr": 46, "value": 63, "action": "random", "parameters": {"minval": 30,"maxval": 70}},
+                {"addr": 47, "value": 63, "action": "increment", "parameters": {"minval": 0, "maxval": 100}},
+
+                {"addr": 48, "value": 3, "action": null},
+                {"addr": 49, "value": 66, "action": null},
+                {"addr": 50, "value": 63, "action": "random", "parameters": {"minval": 30,"maxval": 70}},
+                {"addr": 51, "value": 63, "action": "increment", "parameters": {"minval": 0, "maxval": 100}},
+
+                {"addr": 52, "value": 3, "action": null},
+                {"addr": 53, "value": 66, "action": null},
+                {"addr": 54, "value": 63, "action": "random", "parameters": {"minval": 30,"maxval": 70}},
+                {"addr": 55, "value": 63, "action": "increment", "parameters": {"minval": 0, "maxval": 100}},
+
+                {"addr": 56, "value": 3, "action": null},
+                {"addr": 57, "value": 66, "action": null},
+                {"addr": 58, "value": 63, "action": "random", "parameters": {"minval": 30,"maxval": 70}},
+                {"addr": 59, "value": 63, "action": "increment", "parameters": {"minval": 0, "maxval": 100}},
+
+                {"addr": 60, "value": 3, "action": null},
+                {"addr": 61, "value": 66, "action": null},
+                {"addr": 62, "value": 63, "action": "random", "parameters": {"minval": 30,"maxval": 70}},
+                {"addr": 63, "value": 63, "action": "increment", "parameters": {"minval": 0, "maxval": 100}},
+
+                {"addr": 64, "value": 0, "action": "random", "parameters": {"minval": 0,"maxval": 15}},
+                {"addr": 65, "value": 5, "action": "random", "parameters": {"minval": 0,"maxval": 15}},
+                {"addr": 66, "value": 10, "action": "random", "parameters": {"minval": 0,"maxval": 15}},
+                {"addr": 67, "value": 15, "action": "random", "parameters": {"minval": 0,"maxval": 15}},
+
+                {"addr": 68, "value": 30, "action": "random", "parameters": {"minval": 30,"maxval": 60}},
+                {"addr": 69, "value": 40, "action": "random", "parameters": {"minval": 30,"maxval": 60}},
+                {"addr": 70, "value": 50, "action": "random", "parameters": {"minval": 30,"maxval": 60}},
+                {"addr": 71, "value": 60, "action": "random", "parameters": {"minval": 30,"maxval": 60}},
+
+                {"addr": 72, "value": 1, "action": "increment", "parameters": {"minval": 1,"maxval": 4}},
+                {"addr": 73, "value": 2, "action": "increment", "parameters": {"minval": 1,"maxval": 4}},
+                {"addr": 74, "value": 3, "action": "increment", "parameters": {"minval": 1,"maxval": 4}},
+                {"addr": 75, "value": 4, "action": "increment", "parameters": {"minval": 1,"maxval": 4}},
+
+                {"addr": 76, "value": 2, "action": null},
+                {"addr": 77, "value": 49, "action": null},
+                {"addr": 78, "value": 3, "action": "increment", "parameters": {"minval": 1,"maxval": 5}},
+                {"addr": 79, "value": 42, "action": null},
+                {"addr": 80, "value": 1, "action": null},
+                {"addr": 81, "value": 1, "action": null}
+            ],
+            "uint32": [],
+            "float32": [],
+            "string": [],
+            "repeat": []
+        }
+    }
+}

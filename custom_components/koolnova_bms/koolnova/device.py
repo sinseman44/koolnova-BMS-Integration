@@ -227,8 +227,9 @@ class Koolnova:
                     parity:str = const.DEFAULT_PARITY,
                     bytesize:int = const.DEFAULT_BYTESIZE,
                     stopbits:int = const.DEFAULT_STOPBITS,
+                    debug:bool = False,
                     timeout:int = 1) -> None:
-        ''' Class constructor '''
+        ''' Class constructor for RTU '''
         self._client = Operations(port=port,
                                     addr=addr,
                                     baudrate=baudrate,
@@ -236,12 +237,40 @@ class Koolnova:
                                     bytesize=bytesize,
                                     stopbits=stopbits,
                                     timeout=timeout)
+        self._debug = debug
         self._name = name
         self._global_mode = const.GlobalMode.COLD
         self._efficiency = const.Efficiency.LOWER_EFF
         self._sys_state = const.SysState.SYS_STATE_OFF 
         self._engines = []
-        self._areas = [] 
+        self._areas = []
+
+    def __init__(self,
+                name:str = "",
+                port:int = const.DEFAULT_TCP_PORT,
+                addr:str = const.DEFAULT_TCP_ADDR,
+                modbus:int = const.DEFAULT_ADDR,
+                retries:int = const.DEFAULT_TCP_RETRIES,
+                reco_delay_min:float = const.DEFAULT_TCP_RECO_DELAY,
+                reco_delay_max:float = const.DEFAULT_TCP_RECO_DELAY_MAX,
+                debug:bool = False,
+                timeout:int = 1) -> None:
+        ''' Class constructor for TCP '''
+        self._client = Operations(addr=addr,
+                                    port=port,
+                                    modbus=modbus,
+                                    retries=retries,
+                                    reco_delay_min=reco_delay_min,
+                                    reco_delay_max=reco_delay_max,
+                                    timeout=timeout,
+                                    debug=debug)
+        self._debug = debug
+        self._name = name
+        self._global_mode = const.GlobalMode.COLD
+        self._efficiency = const.Efficiency.LOWER_EFF
+        self._sys_state = const.SysState.SYS_STATE_OFF 
+        self._engines = []
+        self._areas = []
 
     def _area_defined(self, 
                         id_search:int = 0,
@@ -505,6 +534,24 @@ class Koolnova:
             _LOGGER.error("[EFF] Error writing {} to modbus".format(val))
             raise UpdateValueError('Error writing to modbus updated value')    
         self._efficiency = val
+
+    @property
+    def debug(self) -> bool:
+        ''' Get Debug mode '''
+        return self._debug
+
+    async def async_set_debug(self,
+                                val:bool,
+                                ) -> None:
+        ''' Set Debug mode '''
+        if not isinstance(val, bool):
+            raise AssertionError('Input variable must be Enum SysState')
+        _LOGGER.debug("set debug mode : {}".format(val))
+        ret = await self._client.async_set_debug(val)
+        if not ret:
+            _LOGGER.error("[DEBUG] Error setting/reseting {}".format(val))
+            raise UpdateValueError('Error setting/reseting debug mode') 
+        self._debug = val
 
     @property
     def sys_state(self) -> const.SysState:
