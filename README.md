@@ -126,6 +126,9 @@ Depending on the choice made, the next step is the Modbus RTU configuration or t
 All serial fields are filled with default values defined by Koolnova.<br />
 Adapt the fields according to your own configuration.<br />
 
+> [!IMPORTANT]
+> The device name is important if you have multiple Koolnova controller to differentiate them and must be different for each instance of this integration.
+
 ![HA_rtu_config](png/HA_config_Koolnova_BMS1.png)
 
 > [!NOTE]
@@ -140,6 +143,9 @@ After validation of the serial configuation, the component will test if it can c
 
 All fields are filled with default values.<br />
 Adapt the fields according to your own configuration.<br />
+
+> [!IMPORTANT]
+> The device name is important if you have multiple Koolnova controller to differentiate them and must be different for each instance of this integration.
 
 ![HA_tcp_config](png/koolnova_config_modbusTCP_infos.png)
 
