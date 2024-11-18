@@ -94,14 +94,15 @@ class KoolnovaConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input:
             _LOGGER.debug("[config_flow|tcp] values received: {}".format(user_input))
             self._user_inputs.update(user_input)
-            self._conn = Operations(addr=self._user_inputs["Address"],
+            self._conn = Operations(mode="Modbus TCP",
+                                    timeout=self._user_inputs["Timeout"],
+                                    debug=self._user_inputs["Debug"],
+                                    addr=self._user_inputs["Address"],
                                     port=self._user_inputs["Port"],
                                     modbus=self._user_inputs["Modbus"],
                                     retries=self._user_inputs["Retries"],
                                     reco_delay_min=self._user_inputs["Reconnect_delay_min"],
-                                    reco_delay_max=self._user_inputs["Reconnect_delay_max"],
-                                    timeout=self._user_inputs["Timeout"],
-                                    debug=self._user_inputs["Debug"])
+                                    reco_delay_max=self._user_inputs["Reconnect_delay_max"])
             try:
                 await self._conn.async_connect()
                 if not self._conn.connected():
@@ -153,15 +154,15 @@ class KoolnovaConfigFlow(ConfigFlow, domain=DOMAIN):
             _LOGGER.debug("[config_flow|rtu] values received: {}".format(user_input))
             # Second call; On memorise les données dans le dictionnaire
             self._user_inputs.update(user_input)
-
-            self._conn = Operations(port=self._user_inputs["Device"],
+            self._conn = Operations(mode="Modbus RTU",
+                                    timeout=self._user_inputs["Timeout"],
+                                    debug=self._user_inputs["Debug"],
+                                    port=self._user_inputs["Device"],
                                     addr=self._user_inputs["Address"],
                                     baudrate=int(self._user_inputs["Baudrate"]),
                                     parity=self._user_inputs["Parity"][0],
-                                    bytesize=self._user_inputs["Sizebyte"],
                                     stopbits=self._user_inputs["Stopbits"],
-                                    timeout=self._user_inputs["Timeout"],
-                                    debug=self._user_inputs["Debug"])
+                                    bytesize=self._user_inputs["Sizebyte"])
             try:
                 await self._conn.async_connect()
                 if not self._conn.connected():

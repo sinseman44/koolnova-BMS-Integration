@@ -29,15 +29,16 @@ async def async_setup_entry(hass: HomeAssistant,
         parity: str = entry.data['Parity'][0]
         bytesize: int = entry.data['Sizebyte']
         stopbits: int = entry.data['Stopbits']
-        device = Koolnova(name=name,
+        device = Koolnova(mode=entry.data['Mode'],
+                            name=name,
+                            timeout=timeout,
+                            debug=debug,
                             port=port,
                             addr=addr,
                             baudrate=baudrate,
                             parity=parity,
                             bytesize=bytesize,
-                            stopbits=stopbits,
-                            debug=debug,
-                            timeout=timeout)
+                            stopbits=stopbits)
     elif entry.data['Mode'] == 'Modbus TCP':
         port:int = entry.data['Port']
         addr:str = entry.data['Address']
@@ -45,15 +46,16 @@ async def async_setup_entry(hass: HomeAssistant,
         retries:int = entry.data['Retries']
         reco_delay_min:float = entry.data['Reconnect_delay_min']
         reco_delay_max:float = entry.data['Reconnect_delay_max']
-        device = Koolnova(name=name,
+        device = Koolnova(mode=entry.data['Mode'],
+                            name=name,
+                            timeout=timeout,
+                            debug=debug,
                             port=port,
                             addr=addr,
                             modbus=modbus,
                             retries=retries,
                             reco_delay_min=reco_delay_min,
-                            reco_delay_max=reco_delay_max,
-                            debug=debug,
-                            timeout=timeout)
+                            reco_delay_max=reco_delay_max)
     else:
         _LOGGER.error("Integration initialisation failed (Mode unknown)")
         return False
