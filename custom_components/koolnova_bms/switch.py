@@ -62,9 +62,9 @@ class SystemStateSwitch(CoordinatorEntity, SwitchEntity):
                 ) -> None:
         super().__init__(coordinator)
         self._device = device
-        self._attr_name = f"{device.name} Global HVAC State"
-        self._attr_device_info = device.device_info
-        self._attr_unique_id = f"{DOMAIN}-Global-HVAC-State-switch"
+        self._attr_name = f"{self._device.name} Global HVAC State"
+        self._attr_device_info = self._device.device_info
+        self._attr_unique_id = f"{DOMAIN}-{self._device.name}-Global-HVAC-State-switch"
         self._attr_is_on = bool(int(self._device.sys_state))
         if bool(int(self._device.sys_state)):
             self._attr_state = STATE_ON
@@ -119,9 +119,9 @@ class DebugStateSwitch(SwitchEntity):
                 ) -> None:
         super().__init__()
         self._device = device
-        self._attr_name = f"Modbus Debug"
-        self._attr_device_info = device.device_info
-        self._attr_unique_id = f"{DOMAIN}-Modbus-Debug-switch"
+        self._attr_name = f"{self._device.name} Modbus Debug"
+        self._attr_device_info = self._device.device_info
+        self._attr_unique_id = f"{DOMAIN}-{self._device.name}-Modbus-Debug-switch"
         self._attr_is_on = bool(int(self._device.debug))
         if bool(int(self._device.debug)):
             self._attr_state = STATE_ON

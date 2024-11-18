@@ -77,10 +77,10 @@ class DiagnosticsSensor(SensorEntity):
                     ) -> None:
         """ Class constructor """
         self._device = device
-        self._attr_name = f"{device.name} {name}"
+        self._attr_name = f"{self._device.name} {name}"
         self._attr_entity_registry_enabled_default = True
         self._attr_device_info = self._device.device_info
-        self._attr_unique_id = f"{DOMAIN}-{name}-sensor"
+        self._attr_unique_id = f"{DOMAIN}-{self._device.name}-{name}-sensor"
         self._attr_native_value = entry_infos.get(name)
 
     @property
@@ -106,15 +106,15 @@ class DiagModbusSensor(SensorEntity):
         self._device = device
         self._attr_entity_registry_enabled_default = True
         self._attr_device_info = self._device.device_info
-        self._attr_unique_id = f"{DOMAIN}-Modbus-RTU-sensor"
+        self._attr_unique_id = f"{DOMAIN}-{self._device.name}-Modbus-RTU-sensor"
         if entry_infos.get("Mode") == 'Modbus RTU':
-            self._attr_name = f"{device.name} Modbus RTU"
+            self._attr_name = f"{self._device.name} {self._device.name} Modbus RTU"
             self._attr_native_value = "{} {}{}{}".format(entry_infos.get("Baudrate"),
                                                         entry_infos.get("Sizebyte"),
                                                         entry_infos.get("Parity")[0],
                                                         entry_infos.get("Stopbits"))
         elif entry_infos.get("Mode") == 'Modbus TCP':
-            self._attr_name = f"{device.name} Modbus TCP"
+            self._attr_name = f"{self._device.name} {self._device.name} Modbus TCP"
             self._attr_native_value = "{}:{}".format(entry_infos.get("Address"),
                                                         entry_infos.get("Port"))
 
@@ -142,11 +142,11 @@ class DiagEngineThroughputSensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self._device = device
         self._engine = engine
-        self._attr_name = f"{device.name} Engine AC{engine.engine_id} Throughput"
+        self._attr_name = f"{self._device.name} Engine AC{self._engine.engine_id} throughput"
         self._attr_entity_registry_enabled_default = True
         self._attr_device_info = self._device.device_info
-        self._attr_unique_id = f"{DOMAIN}-Engine-AC{engine.engine_id}-throughput-sensor"
-        self._attr_native_value = "{}".format(engine.throughput)
+        self._attr_unique_id = f"{DOMAIN}-{self._device.name}-Engine-AC{self._engine.engine_id}-throughput-sensor"
+        self._attr_native_value = "{}".format(self._engine.throughput)
 
     @property
     def icon(self) -> str | None:
@@ -177,11 +177,11 @@ class DiagEngineTempOrderSensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self._device = device
         self._engine = engine
-        self._attr_name = f"{device.name} Engine AC{engine.engine_id} Temperature Order"
+        self._attr_name = f"{self._device.name} Engine AC{self._engine.engine_id} temperature order"
         self._attr_entity_registry_enabled_default = True
         self._attr_device_info = self._device.device_info
-        self._attr_unique_id = f"{DOMAIN}-Engine-AC{engine.engine_id}-temp-order-sensor"
-        self._attr_native_value = "{}".format(engine.order_temp)
+        self._attr_unique_id = f"{DOMAIN}-{self._device.name}-Engine-AC{self._engine.engine_id}-temp-order-sensor"
+        self._attr_native_value = "{}".format(self._engine.order_temp)
 
     @property
     def icon(self) -> str | None:

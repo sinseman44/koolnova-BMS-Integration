@@ -93,11 +93,11 @@ class AreaClimateEntity(CoordinatorEntity, ClimateEntity):
         super().__init__(coordinator)
         self._device = device
         self._area = area
-        self._attr_name = f"{device.name} {area.name} area"
-        self._attr_device_info = device.device_info
-        self._attr_unique_id = f"{DOMAIN}-{area.name}-area-climate"
-        self._attr_current_temperature = area.real_temp
-        self._attr_target_temperature = area.order_temp
+        self._attr_name = f"{self._device.name} {self._area.name}"
+        self._attr_device_info = self._device.device_info
+        self._attr_unique_id = f"{DOMAIN}-{self._device.name}-{self._area.name}-area-climate"
+        self._attr_current_temperature = self._area.real_temp
+        self._attr_target_temperature = self._area.order_temp
         self._attr_fan_mode = FAN_TRANSLATION[int(self._area.fan_mode)]
         self._attr_hvac_mode = self._translate_to_hvac_mode()
 

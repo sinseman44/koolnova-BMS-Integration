@@ -69,10 +69,10 @@ class GlobalModeSelect(CoordinatorEntity, SelectEntity):
         super().__init__(coordinator)
         self._attr_options = GLOBAL_MODES
         self._device = device
-        self._attr_name = f"{device.name} Global HVAC Mode"
+        self._attr_name = f"{self._device.name} global HVAC mode"
         self._attr_device_info = device.device_info
         self._attr_icon = "mdi:cog-clockwise"
-        self._attr_unique_id = f"{DOMAIN}-Global-HVACMode-select"
+        self._attr_unique_id = f"{DOMAIN}-{self._device.name}-Global-HVACMode-select"
         self.__select_option(
             GLOBAL_MODE_TRANSLATION[int(self._device.global_mode)]
         )
@@ -114,10 +114,10 @@ class EfficiencySelect(CoordinatorEntity, SelectEntity):
         super().__init__(coordinator)
         self._attr_options = EFF_MODES
         self._device = device
-        self._attr_name = f"{device.name} Global HVAC Efficiency"
-        self._attr_device_info = device.device_info
+        self._attr_name = f"{self._device.name} global HVAC efficiency"
+        self._attr_device_info = self._device.device_info
         self._attr_icon = "mdi:wind-power-outline"
-        self._attr_unique_id = f"{DOMAIN}-Global-HVACEff-select"
+        self._attr_unique_id = f"{DOMAIN}-{self._device.name}-Global-HVACEff-select"
         self.__select_option(
             EFF_TRANSLATION[int(self._device.efficiency)]
         )
@@ -166,10 +166,10 @@ class EngineStateSelect(CoordinatorEntity, SelectEntity):
         self._attr_options = ENGINE_FLOW_MODES
         self._device = device
         self._engine = engine
-        self._attr_name = f"{device.name} Engine AC{engine.engine_id} State"
-        self._attr_device_info = device.device_info
+        self._attr_name = f"{self._device.name} engine AC{self._engine.engine_id} state"
+        self._attr_device_info = self._device.device_info
         self._attr_icon = "mdi:turbine"
-        self._attr_unique_id = f"{DOMAIN}-Engine-AC{engine.engine_id}-State-select"
+        self._attr_unique_id = f"{DOMAIN}-{self._device.name}-Engine-AC{self._engine.engine_id}-State-select"
         self.__select_option(
             ENGINE_FLOW_TRANSLATION[int(self._engine.state)]
         )
