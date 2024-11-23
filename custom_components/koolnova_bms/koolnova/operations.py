@@ -10,7 +10,7 @@ from pymodbus.client import AsyncModbusSerialClient as ModbusClient
 from pymodbus.client import AsyncModbusTcpClient as ModbusTcpClient
 from pymodbus.exceptions import ModbusException
 from pymodbus.pdu import ExceptionResponse
-from pymodbus.transaction import ModbusRtuFramer
+from pymodbus.framer.rtu import FramerRTU
 
 from . import const
 
