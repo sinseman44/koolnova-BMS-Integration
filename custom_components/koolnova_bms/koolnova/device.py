@@ -485,7 +485,7 @@ class Koolnova:
         return {
             "name": self._name,
             "manufacturer": "Koolnova",
-            "identifiers": {(DOMAIN, "deadbeef")},
+            "identifiers": {(DOMAIN, "{}-{}".format("Koolnova", self._name))},
         }
 
     @property
