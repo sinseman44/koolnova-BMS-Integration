@@ -31,6 +31,7 @@ class Operations:
     _tcp_retries:int=const.DEFAULT_TCP_RETRIES
     _tcp_reco_delay_min:float=const.DEFAULT_TCP_RECO_DELAY
     _tcp_reco_delay_max:float=const.DEFAULT_TCP_RECO_DELAY_MAX
+    _lock = asyncio.Lock()
 
     def __init__(self, mode:str, timeout:int, debug:bool=False, **kwargs) -> None:
         ''' Class constructor '''
@@ -73,74 +74,78 @@ class Operations:
 
     async def __async_read_register(self, reg:int) -> (int, bool):
         ''' Read one holding register (code 0x03) '''
-        rr = None
-        if not self._client.connected:
-            raise ModbusConnexionError('Client Modbus not connected')
-        try:
-            _LOGGER.debug("reading holding register: {} - Slave: {}".format(hex(reg), self._addr))
-            rr = await self._client.read_holding_registers(address=reg, count=1, slave=self._addr)
-            if rr.isError():
-                _LOGGER.error("reading holding register error")
+        async with Operations._lock:
+            rr = None
+            if not self._client.connected:
+                raise ModbusConnexionError('Client Modbus not connected')
+            try:
+                _LOGGER.debug("reading holding register: {} - Slave: {}".format(hex(reg), self._addr))
+                rr = await self._client.read_holding_registers(address=reg, count=1, slave=self._addr)
+                if rr.isError():
+                    _LOGGER.error("reading holding register error")
+                    return None, False
+            except Exception as e:
+                _LOGGER.error("Modbus Error: {}".format(e))
                 return None, False
-        except Exception as e:
-            _LOGGER.error("Modbus Error: {}".format(e))
-            return None, False
 
-        if isinstance(rr, ExceptionResponse):
-            _LOGGER.error("Received modbus exception ({})".format(rr))
-            return None, False
-        elif not rr:
-            _LOGGER.error("Response Null")
-            return None, False
-        return rr.registers[0], True
+            if isinstance(rr, ExceptionResponse):
+                _LOGGER.error("Received modbus exception ({})".format(rr))
+                return None, False
+            elif not rr:
+                _LOGGER.error("Response Null")
+                return None, False
+            return rr.registers[0], True
 
     async def __async_read_registers(self, start_reg:int, count:int) -> (int, bool):
         ''' Read holding registers (code 0x03) '''
-        rr = None
-        if not self._client.connected:
-            raise ModbusConnexionError('Client Modbus not connected')
-        try:
-            _LOGGER.debug("reading holding registers: {} - count: {} - Slave: {}".format(hex(start_reg), count, self._addr))
-            rr = await self._client.read_holding_registers(address=start_reg, count=count, slave=self._addr)
-            if rr.isError():
-                _LOGGER.error("reading holding registers error")
+        async with Operations._lock:
+            rr = None
+            if not self._client.connected:
+                raise ModbusConnexionError('Client Modbus not connected')
+            try:
+                _LOGGER.debug("reading holding registers: {} - count: {} - Slave: {}".format(hex(start_reg), count, self._addr))
+                rr = await self._client.read_holding_registers(address=start_reg, count=count, slave=self._addr)
+                if rr.isError():
+                    _LOGGER.error("reading holding registers error")
+                    return None, False
+            except Exception as e:
+                _LOGGER.error("{}".format(e))
                 return None, False
-        except Exception as e:
-            _LOGGER.error("{}".format(e))
-            return None, False
 
-        if isinstance(rr, ExceptionResponse):
-            _LOGGER.error("Received modbus exception ({})".format(rr))
-            return None, False
-        elif not rr:
-            _LOGGER.error("Response Null")
-            return None, False
-        return rr.registers, True
+            if isinstance(rr, ExceptionResponse):
+                _LOGGER.error("Received modbus exception ({})".format(rr))
+                return None, False
+            elif not rr:
+                _LOGGER.error("Response Null")
+                return None, False
+            return rr.registers, True
 
     async def __async_write_register(self, reg:int, val:int) -> bool:
         ''' Write one register (code 0x06) '''
-        rq = None
-        ret = True
-        if not self._client.connected:
-            raise ModbusConnexionError('Client Modbus not connected')
-        try:
-            _LOGGER.debug("writing single register: {} - Slave: {} - Val: {}".format(hex(reg), self._addr, hex(val)))
-            rq = await self._client.write_register(address=reg, value=val, slave=self._addr)
-            if rq.isError():
-                _LOGGER.error("writing register error")
+        async with Operations._lock:
+            rq = None
+            ret = True
+            if not self._client.connected:
+                raise ModbusConnexionError('Client Modbus not connected')
+            try:
+                _LOGGER.debug("writing single register: {} - Slave: {} - Val: {}".format(hex(reg), self._addr, hex(val)))
+                rq = await self._client.write_register(address=reg, value=val, slave=self._addr)
+                if rq.isError():
+                    _LOGGER.error("writing register error")
+                    return False
+            except Exception as e:
+                _LOGGER.error("{}".format(e))
                 return False
-        except Exception as e:
-            _LOGGER.error("{}".format(e))
-            return False
 
-        if isinstance(rq, ExceptionResponse):
-            _LOGGER.error("Received modbus exception ({})".format(rr))
-            return False
-        return ret 
+            if isinstance(rq, ExceptionResponse):
+                _LOGGER.error("Received modbus exception ({})".format(rr))
+                return False
+            return ret 
 
     async def async_connect(self) -> None:
         ''' connect to the modbus serial server '''
-        await self._client.connect()
+        async with Operations._lock:
+            await self._client.connect()
 
     def connected(self) -> bool:
         ''' get modbus client status '''
