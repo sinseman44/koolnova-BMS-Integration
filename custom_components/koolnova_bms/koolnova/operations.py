@@ -79,6 +79,7 @@ class Operations:
             if not self._client.connected:
                 raise ModbusConnexionError('Client Modbus not connected')
             try:
+                await asyncio.sleep(0.3)
                 _LOGGER.debug("reading holding register: {} - Slave: {}".format(hex(reg), self._addr))
                 rr = await self._client.read_holding_registers(address=reg, count=1, slave=self._addr)
                 if rr.isError():
@@ -103,6 +104,7 @@ class Operations:
             if not self._client.connected:
                 raise ModbusConnexionError('Client Modbus not connected')
             try:
+                await asyncio.sleep(0.3)
                 _LOGGER.debug("reading holding registers: {} - count: {} - Slave: {}".format(hex(start_reg), count, self._addr))
                 rr = await self._client.read_holding_registers(address=start_reg, count=count, slave=self._addr)
                 if rr.isError():
@@ -128,6 +130,7 @@ class Operations:
             if not self._client.connected:
                 raise ModbusConnexionError('Client Modbus not connected')
             try:
+                await asyncio.sleep(0.3)
                 _LOGGER.debug("writing single register: {} - Slave: {} - Val: {}".format(hex(reg), self._addr, hex(val)))
                 rq = await self._client.write_register(address=reg, value=val, slave=self._addr)
                 if rq.isError():
