@@ -7,9 +7,10 @@ import asyncio
 
 from pymodbus import pymodbus_apply_logging_config
 from pymodbus.client import AsyncModbusSerialClient as ModbusClient
+from pymodbus.client import AsyncModbusTcpClient as ModbusTcpClient
 from pymodbus.exceptions import ModbusException
 from pymodbus.pdu import ExceptionResponse
-from pymodbus.transaction import ModbusRtuFramer
+from pymodbus.framer.rtu import FramerRTU
 
 from . import const
 
@@ -18,119 +19,136 @@ _LOGGER = log.getLogger(__name__)
 class Operations:
     ''' koolnova BMS Modbus operations class '''
 
-    def __init__(self, port:str, timeout:int, debug:bool=False) -> None:
-        ''' Class constructor '''
-        self._port = port
-        self._timeout = timeout
-        self._addr = const.DEFAULT_ADDR
-        self._baudrate = const.DEFAULT_BAUDRATE
-        self._parity = const.DEFAULT_PARITY
-        self._bytesize = const.DEFAULT_BYTESIZE
-        self._stopbits = const.DEFAULT_STOPBITS
-        self._client = ModbusClient(port=self._port,
-                                    baudrate=self._baudrate,
-                                    parity=self._parity,
-                                    stopbits=self._stopbits,
-                                    bytesize=self._bytesize,
-                                    timeout=self._timeout)
-        if debug:
-            pymodbus_apply_logging_config("DEBUG")
+    _rtu_port:str = ""
+    _rtu_addr:int = const.DEFAULT_ADDR
+    _rtu_baudrate = const.DEFAULT_BAUDRATE
+    _rtu_parity = const.DEFAULT_PARITY
+    _rtu_bytesize = const.DEFAULT_BYTESIZE
+    _rtu_stopbits = const.DEFAULT_STOPBITS
+    _tcp_port:int = const.DEFAULT_TCP_PORT
+    _tcp_addr:str = const.DEFAULT_TCP_ADDR
+    _tcp_modbus:int=const.DEFAULT_ADDR
+    _tcp_retries:int=const.DEFAULT_TCP_RETRIES
+    _tcp_reco_delay_min:float=const.DEFAULT_TCP_RECO_DELAY
+    _tcp_reco_delay_max:float=const.DEFAULT_TCP_RECO_DELAY_MAX
+    _lock = asyncio.Lock()
 
-    def __init__(self, 
-                    port:str="",
-                    addr:int=const.DEFAULT_ADDR,
-                    baudrate:int=const.DEFAULT_BAUDRATE,
-                    parity:str=const.DEFAULT_PARITY,
-                    stopbits:int=const.DEFAULT_STOPBITS,
-                    bytesize:int=const.DEFAULT_BYTESIZE,
-                    timeout:int=1,
-                    debug:bool=False) -> None:
+    def __init__(self, mode:str, timeout:int, debug:bool=False, **kwargs) -> None:
         ''' Class constructor '''
-        self._port = port
-        self._addr = addr
+        self._mode = mode
         self._timeout = timeout
-        self._baudrate = baudrate
-        self._parity = parity
-        self._bytesize = bytesize
-        self._stopbits = stopbits
-        self._client = ModbusClient(port=self._port,
-                                    baudrate=self._baudrate,
-                                    parity=self._parity,
-                                    stopbits=self._stopbits,
-                                    bytesize=self._bytesize,
-                                    timeout=self._timeout)
-        if debug:
+        self._debug = debug
+        self.__dict__.update(kwargs)
+        _LOGGER.debug("[OPERATION] dict: {}".format(self.__dict__))
+        if self._mode == 'Modbus RTU':
+            self._addr = kwargs.get('addr', const.DEFAULT_ADDR)
+            self._rtu_port = kwargs.get('port', "")
+            self._rtu_baudrate = kwargs.get('baudrate', const.DEFAULT_BAUDRATE)
+            self._rtu_parity = kwargs.get('parity', const.DEFAULT_PARITY)
+            self._rtu_bytesize = kwargs.get('bytesize', const.DEFAULT_BYTESIZE)
+            self._rtu_stopbits = kwargs.get('stopbits', const.DEFAULT_STOPBITS)
+            self._client = ModbusClient(port=self._rtu_port,
+                                        baudrate=self._rtu_baudrate,
+                                        parity=self._rtu_parity,
+                                        stopbits=self._rtu_stopbits,
+                                        bytesize=self._rtu_bytesize,
+                                        timeout=self._timeout)
+        elif self._mode == 'Modbus TCP':
+            self._tcp_port = kwargs.get('port',const.DEFAULT_TCP_PORT)
+            self._tcp_addr = kwargs.get('addr',const.DEFAULT_TCP_ADDR)
+            self._addr = kwargs.get('modbus',const.DEFAULT_ADDR) # Modbus slave ID for the operations
+            self._tcp_retries = kwargs.get('retries',const.DEFAULT_TCP_RETRIES)
+            self._tcp_reco_delay_min = kwargs.get('reco_delay_min',const.DEFAULT_TCP_RECO_DELAY)
+            self._tcp_reco_delay_max = kwargs.get('reco_delay_max',const.DEFAULT_TCP_RECO_DELAY_MAX)
+            self._client = ModbusTcpClient(host=self._tcp_addr,
+                                            port=self._tcp_port,
+                                            name="koolnovaTCP",
+                                            retries=self._tcp_retries,
+                                            reconnect_delay=self._tcp_reco_delay_min,
+                                            reconnect_delay_max=self._tcp_reco_delay_max,
+                                            timeout=self._timeout)
+        else:
+            raise InitialisationError('Mode ({}) not defined'.format(self._mode))
+        if self._debug:
             pymodbus_apply_logging_config("DEBUG")
 
     async def __async_read_register(self, reg:int) -> (int, bool):
         ''' Read one holding register (code 0x03) '''
-        rr = None
-        if not self._client.connected:
-            raise ModbusConnexionError('Client Modbus not connected')
-        try:
-            _LOGGER.debug("reading holding register: {} - Addr: {}".format(hex(reg), self._addr))
-            rr = await self._client.read_holding_registers(address=reg, count=1, slave=self._addr)
-            if rr.isError():
-                _LOGGER.error("reading holding register error")
+        async with Operations._lock:
+            rr = None
+            if not self._client.connected:
+                raise ModbusConnexionError('Client Modbus not connected')
+            try:
+                await asyncio.sleep(0.3)
+                _LOGGER.debug("reading holding register: {} - Slave: {}".format(hex(reg), self._addr))
+                rr = await self._client.read_holding_registers(address=reg, count=1, slave=self._addr)
+                if rr.isError():
+                    _LOGGER.error("reading holding register error")
+                    return None, False
+            except Exception as e:
+                _LOGGER.error("Modbus Error: {}".format(e))
                 return None, False
-        except Exception as e:
-            _LOGGER.error("Modbus Error: {}".format(e))
-            return None, False
 
-        if isinstance(rr, ExceptionResponse):
-            _LOGGER.error("Received modbus exception ({})".format(rr))
-            return None, False
-        elif not rr:
-            _LOGGER.error("Response Null")
-            return None, False
-        return rr.registers[0], True
+            if isinstance(rr, ExceptionResponse):
+                _LOGGER.error("Received modbus exception ({})".format(rr))
+                return None, False
+            elif not rr:
+                _LOGGER.error("Response Null")
+                return None, False
+            return rr.registers[0], True
 
     async def __async_read_registers(self, start_reg:int, count:int) -> (int, bool):
         ''' Read holding registers (code 0x03) '''
-        rr = None
-        if not self._client.connected:
-            raise ModbusConnexionError('Client Modbus not connected')
-        try:
-            rr = await self._client.read_holding_registers(address=start_reg, count=count, slave=self._addr)
-            if rr.isError():
-                _LOGGER.error("reading holding registers error")
+        async with Operations._lock:
+            rr = None
+            if not self._client.connected:
+                raise ModbusConnexionError('Client Modbus not connected')
+            try:
+                await asyncio.sleep(0.3)
+                _LOGGER.debug("reading holding registers: {} - count: {} - Slave: {}".format(hex(start_reg), count, self._addr))
+                rr = await self._client.read_holding_registers(address=start_reg, count=count, slave=self._addr)
+                if rr.isError():
+                    _LOGGER.error("reading holding registers error")
+                    return None, False
+            except Exception as e:
+                _LOGGER.error("{}".format(e))
                 return None, False
-        except Exception as e:
-            _LOGGER.error("{}".format(e))
-            return None, False
 
-        if isinstance(rr, ExceptionResponse):
-            _LOGGER.error("Received modbus exception ({})".format(rr))
-            return None, False
-        elif not rr:
-            _LOGGER.error("Response Null")
-            return None, False
-        return rr.registers, True
+            if isinstance(rr, ExceptionResponse):
+                _LOGGER.error("Received modbus exception ({})".format(rr))
+                return None, False
+            elif not rr:
+                _LOGGER.error("Response Null")
+                return None, False
+            return rr.registers, True
 
     async def __async_write_register(self, reg:int, val:int) -> bool:
         ''' Write one register (code 0x06) '''
-        rq = None
-        ret = True
-        if not self._client.connected:
-            raise ModbusConnexionError('Client Modbus not connected')
-        try:
-            _LOGGER.debug("writing single register: {} - Addr: {} - Val: {}".format(hex(reg), self._addr, hex(val)))
-            rq = await self._client.write_register(address=reg, value=val, slave=self._addr)
-            if rq.isError():
-                _LOGGER.error("writing register error")
+        async with Operations._lock:
+            rq = None
+            ret = True
+            if not self._client.connected:
+                raise ModbusConnexionError('Client Modbus not connected')
+            try:
+                await asyncio.sleep(0.3)
+                _LOGGER.debug("writing single register: {} - Slave: {} - Val: {}".format(hex(reg), self._addr, hex(val)))
+                rq = await self._client.write_register(address=reg, value=val, slave=self._addr)
+                if rq.isError():
+                    _LOGGER.error("writing register error")
+                    return False
+            except Exception as e:
+                _LOGGER.error("{}".format(e))
                 return False
-        except Exception as e:
-            _LOGGER.error("{}".format(e))
-            return False
 
-        if isinstance(rq, ExceptionResponse):
-            _LOGGER.error("Received modbus exception ({})".format(rr))
-            return False
-        return ret 
+            if isinstance(rq, ExceptionResponse):
+                _LOGGER.error("Received modbus exception ({})".format(rr))
+                return False
+            return ret 
 
     async def async_connect(self) -> None:
         ''' connect to the modbus serial server '''
-        await self._client.connect()
+        async with Operations._lock:
+            await self._client.connect()
 
     def connected(self) -> bool:
         ''' get modbus client status '''
@@ -144,7 +162,7 @@ class Operations:
     async def async_discover_registered_areas(self) -> list:
         ''' Discover all areas registered to the system '''
         regs, ret = await self.__async_read_registers(start_reg=const.REG_START_ZONE, 
-                                                count=const.NB_ZONE_MAX * const.NUM_REG_PER_ZONE)
+                                                        count=const.NB_ZONE_MAX * const.NUM_REG_PER_ZONE)
         if not ret:
             raise ReadRegistersError("Read holding regsiter error")
         zones_lst = []
@@ -218,6 +236,14 @@ class Operations:
             _area_dict['real_temp'] = regs[_idx + const.REG_TEMP_REAL]/2
             _areas_dict[area_idx + 1] = _area_dict
         return True, _areas_dict
+
+    async def async_set_debug(self, val:bool) -> bool:
+        ''' Set/Reset Debug Mode '''
+        if val:
+            pymodbus_apply_logging_config("DEBUG")
+        else:
+            pymodbus_apply_logging_config("INFO")
+        return True
 
     async def async_system_status(self) -> (bool, const.SysState):
         ''' Read system status register '''
@@ -459,40 +485,17 @@ class Operations:
             _LOGGER.error('Error writing area fan mode')
         return ret
 
-    @property
-    def port(self) -> str:
-        ''' Get Port '''
-        return self._port
+class InitialisationError(Exception):
+    ''' user defined exception '''
 
-    @property
-    def address(self) -> str:
-        ''' Get address '''
-        return self._addr
+    def __init__(self,
+                    msg:str = "") -> None:
+        ''' Class Constructor '''
+        self._msg = msg
 
-    @property
-    def baudrate(self) -> str:
-        ''' Get baudrate '''
-        return self._baudrate
-
-    @property
-    def parity(self) -> str:
-        ''' Get parity '''
-        return self._parity
-
-    @property
-    def bytesize(self) -> str:
-        ''' Get bytesize '''
-        return self._bytesize
-
-    @property
-    def stopbits(self) -> str:
-        ''' Get stopbits '''
-        return self._stopbits
-
-    @property
-    def timeout(self) -> int:
-        ''' Get Timeout '''
-        return self._timeout
+    def __str__(self):
+        ''' print the message '''
+        return self._msg    
 
 class ModbusConnexionError(Exception):
     ''' user defined exception '''

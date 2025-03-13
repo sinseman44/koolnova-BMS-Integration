@@ -219,29 +219,66 @@ class Engine:
 class Koolnova:
     ''' koolnova Device class '''
 
-    def __init__(self,
-                    name:str = "",
-                    port:str = "",
-                    addr:int = const.DEFAULT_ADDR,
-                    baudrate:int = const.DEFAULT_BAUDRATE,
-                    parity:str = const.DEFAULT_PARITY,
-                    bytesize:int = const.DEFAULT_BYTESIZE,
-                    stopbits:int = const.DEFAULT_STOPBITS,
-                    timeout:int = 1) -> None:
+    _rtu_port:str = ""
+    _rtu_addr:int = const.DEFAULT_ADDR
+    _rtu_baudrate:int = const.DEFAULT_BAUDRATE
+    _rtu_parity:str = const.DEFAULT_PARITY
+    _rtu_bytesize:int = const.DEFAULT_BYTESIZE
+    _rtu_stopbits:int = const.DEFAULT_STOPBITS
+
+    _tcp_port:int = const.DEFAULT_TCP_PORT
+    _tcp_addr:str = const.DEFAULT_TCP_ADDR
+    _tcp_modbus:int = const.DEFAULT_ADDR
+    _tcp_retries:int = const.DEFAULT_TCP_RETRIES
+    _tcp_reco_delay_min:float = const.DEFAULT_TCP_RECO_DELAY
+    _tcp_reco_delay_max:float = const.DEFAULT_TCP_RECO_DELAY_MAX
+
+    def __init__(self, mode:str = "", name:str = "", timeout:int = 1, debug:bool = False, **kwargs) -> None:
         ''' Class constructor '''
-        self._client = Operations(port=port,
-                                    addr=addr,
-                                    baudrate=baudrate,
-                                    parity=parity,
-                                    bytesize=bytesize,
-                                    stopbits=stopbits,
-                                    timeout=timeout)
+        self._mode = mode
         self._name = name
+        self._debug = debug
+        self._timeout = timeout
+        self.__dict__.update(kwargs)
+        if self._mode == "Modbus RTU":
+            self._rtu_port = kwargs.get('port', '')
+            self._rtu_addr = kwargs.get('addr', const.DEFAULT_ADDR)
+            self._rtu_baudrate = kwargs.get('baudrate', const.DEFAULT_BAUDRATE)
+            self._rtu_parity = kwargs.get('parity', const.DEFAULT_PARITY)
+            self._rtu_bytesize = kwargs.get('bytesize', const.DEFAULT_BYTESIZE)
+            self._rtu_stopbits = kwargs.get('stopbits', const.DEFAULT_STOPBITS)
+            self._client = Operations(mode=self._mode,
+                                        timeout=self._timeout,
+                                        debug=self._debug,
+                                        port=self._rtu_port,
+                                        addr=self._rtu_addr,
+                                        baudrate=self._rtu_baudrate,
+                                        parity=self._rtu_parity,
+                                        bytesize=self._rtu_bytesize,
+                                        stopbits=self._rtu_stopbits)
+        elif self._mode == "Modbus TCP":
+            self._tcp_port = kwargs.get('port', const.DEFAULT_TCP_PORT)
+            self._tcp_addr = kwargs.get('addr', const.DEFAULT_TCP_ADDR)
+            self._tcp_modbus = kwargs.get('modbus', const.DEFAULT_ADDR)
+            self._tcp_retries = kwargs.get('retries', const.DEFAULT_TCP_RETRIES)
+            self._tcp_reco_delay_min = kwargs.get('reco_delay_min', const.DEFAULT_TCP_RECO_DELAY)
+            self._tcp_reco_delay_max = kwargs.get('reco_delay_max', const.DEFAULT_TCP_RECO_DELAY_MAX)
+            self._client = Operations(mode=self._mode,
+                                        timeout=self._timeout,
+                                        debug=self._debug,
+                                        addr=self._tcp_addr,
+                                        port=self._tcp_port,
+                                        modbus=self._tcp_modbus,
+                                        retries=self._tcp_retries,
+                                        reco_delay_min=self._tcp_reco_delay_min,
+                                        reco_delay_max=self._tcp_reco_delay_max)
+        else:
+            raise InitialisationError('unknown mode ({})'.format(self._mode))
         self._global_mode = const.GlobalMode.COLD
         self._efficiency = const.Efficiency.LOWER_EFF
-        self._sys_state = const.SysState.SYS_STATE_OFF 
+        self._sys_state = const.SysState.SYS_STATE_OFF
         self._engines = []
-        self._areas = [] 
+        self._areas = []
 
     def _area_defined(self, 
                         id_search:int = 0,
@@ -448,7 +485,7 @@ class Koolnova:
         return {
             "name": self._name,
             "manufacturer": "Koolnova",
-            "identifiers": {(DOMAIN, "deadbeef")},
+            "identifiers": {(DOMAIN, "{}-{}".format("Koolnova", self._name))},
         }
 
     @property
@@ -505,6 +542,24 @@ class Koolnova:
             _LOGGER.error("[EFF] Error writing {} to modbus".format(val))
             raise UpdateValueError('Error writing to modbus updated value')    
         self._efficiency = val
+
+    @property
+    def debug(self) -> bool:
+        ''' Get Debug mode '''
+        return self._debug
+
+    async def async_set_debug(self,
+                                val:bool,
+                                ) -> None:
+        ''' Set Debug mode '''
+        if not isinstance(val, bool):
+            raise AssertionError('Input variable must be Enum SysState')
+        _LOGGER.debug("set debug mode : {}".format(val))
+        ret = await self._client.async_set_debug(val)
+        if not ret:
+            _LOGGER.error("[DEBUG] Error setting/reseting {}".format(val))
+            raise UpdateValueError('Error setting/reseting debug mode') 
+        self._debug = val
 
     @property
     def sys_state(self) -> const.SysState:
@@ -720,6 +775,18 @@ class ClientNotConnectedError(Exception):
         return self._msg
 
 class UpdateValueError(Exception):
+    ''' user defined exception '''
+
+    def __init__(self,
+                    msg:str = "") -> None:
+        ''' Class Constructor '''
+        self._msg = msg
+
+    def __str__(self):
+        ''' print the message '''
+        return self._msg
+
+class InitialisationError(Exception):
     ''' user defined exception '''
 
     def __init__(self,

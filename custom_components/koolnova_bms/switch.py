@@ -46,6 +46,7 @@ async def async_setup_entry(hass: HomeAssistant,
 
     entities = [
         SystemStateSwitch(coordinator, device),
+        DebugStateSwitch(device),
     ]
     async_add_entities(entities)
 
@@ -61,9 +62,9 @@ class SystemStateSwitch(CoordinatorEntity, SwitchEntity):
                 ) -> None:
         super().__init__(coordinator)
         self._device = device
-        self._attr_name = f"{device.name} Global HVAC State"
-        self._attr_device_info = device.device_info
-        self._attr_unique_id = f"{DOMAIN}-Global-HVAC-State-switch"
+        self._attr_name = f"{self._device.name} Global HVAC State"
+        self._attr_device_info = self._device.device_info
+        self._attr_unique_id = f"{DOMAIN}-{self._device.name}-Global-HVAC-State-switch"
         self._attr_is_on = bool(int(self._device.sys_state))
         if bool(int(self._device.sys_state)):
             self._attr_state = STATE_ON
@@ -106,3 +107,47 @@ class SystemStateSwitch(CoordinatorEntity, SwitchEntity):
     def icon(self) -> str | None:
         """Icon of the entity."""
         return "mdi:power"
+
+class DebugStateSwitch(SwitchEntity):
+    """Select component to set system state """
+    _attr_has_entity_name: bool = True
+    _attr_device_class: SwitchDeviceClass = SwitchDeviceClass.SWITCH
+    _attr_entity_category: EntityCategory = EntityCategory.DIAGNOSTIC
+
+    def __init__(self,
+                    device: Koolnova, # pylint: disable=unused-argument
+                ) -> None:
+        super().__init__()
+        self._device = device
+        self._attr_name = f"{self._device.name} Modbus Debug"
+        self._attr_device_info = self._device.device_info
+        self._attr_unique_id = f"{DOMAIN}-{self._device.name}-Modbus-Debug-switch"
+        self._attr_is_on = bool(int(self._device.debug))
+        if bool(int(self._device.debug)):
+            self._attr_state = STATE_ON
+        else:
+            self._attr_state = STATE_OFF
+
+    async def async_turn_on(self, **kwargs):
+        """ Turn the entity on. """
+        _LOGGER.debug("Turn on Debug")
+        await self._device.async_set_debug(True)
+        self._attr_is_on = True
+        self._attr_state = STATE_ON
+
+    async def async_turn_off(self, **kwargs):
+        """ Turn the entity off. """
+        _LOGGER.debug("Turn off Debug")
+        await self._device.async_set_debug(False)
+        self._attr_is_on = False
+        self._attr_state = STATE_OFF
+
+    @property
+    def is_on(self) -> bool | None:
+        """Return True if entity is on."""
+        return self._device.debug
+
+    @property
+    def icon(self) -> str | None:
+        """Icon of the entity."""
+        return "mdi:bug"
