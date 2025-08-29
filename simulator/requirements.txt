@@ -1,4 +1,4 @@
 asyncio==3.4.3
 pkg_resources==0.0.0
-pymodbus==3.7.4
+pymodbus==3.9.2
 pyserial==3.5
