@@ -172,10 +172,10 @@ class Operations:
         for idx, reg in enumerate(regs):
             if idx % const.NUM_REG_PER_ZONE == 0:
                 zone_dict = {}
-                if const.ZoneRegister(reg >> 1) == const.ZoneRegister.REGISTER_ON:
+                if const.ZoneRegister((reg >> 1) & 0b1) == const.ZoneRegister.REGISTER_ON:
                     zone_dict['id'] = jdx
                     zone_dict['state'] = const.ZoneState(reg & 0b01)
-                    zone_dict['register'] = const.ZoneRegister(reg >> 1)
+                    zone_dict['register'] = const.ZoneRegister((reg >> 1) & 0b1)
                     flag = True
             elif idx % const.NUM_REG_PER_ZONE == 1 and flag:
                 zone_dict['fan'] = const.ZoneFanMode((reg & 0xF0) >> 4)
@@ -201,12 +201,12 @@ class Operations:
                                                 count = const.NUM_REG_PER_ZONE)
         if not ret:
             raise ReadRegistersError("Error reading holding register")
-        if const.ZoneRegister(regs[0] >> 1) == const.ZoneRegister.REGISTER_OFF:
+        if const.ZoneRegister((regs[0] >> 1) & 0b1) == const.ZoneRegister.REGISTER_OFF:
             _LOGGER.warning("Zone with id: {} is not registered".format(zone_id))
             return False, {}
 
         zone_dict['state'] = const.ZoneState(regs[0] & 0b01)
-        zone_dict['register'] = const.ZoneRegister(regs[0] >> 1)
+        zone_dict['register'] = const.ZoneRegister((regs[0] >> 1) & 0b1)
         zone_dict['fan'] = const.ZoneFanMode((regs[1] & 0xF0) >> 4)
         zone_dict['clim'] = const.ZoneClimMode(regs[1] & 0x0F)
         zone_dict['order_temp'] = regs[2]/2
@@ -225,11 +225,11 @@ class Operations:
             _idx:int = 4 * area_idx
             _area_dict:dict = {}
             # test if area is registered or not
-            if const.ZoneRegister(regs[_idx + const.REG_LOCK_ZONE] >> 1) == const.ZoneRegister.REGISTER_OFF:
+            if const.ZoneRegister((regs[_idx + const.REG_LOCK_ZONE] >> 1) & 0b1) == const.ZoneRegister.REGISTER_OFF:
                 continue
 
             _area_dict['state'] = const.ZoneState(regs[_idx + const.REG_LOCK_ZONE] & 0b01)
-            _area_dict['register'] = const.ZoneRegister(regs[_idx + const.REG_LOCK_ZONE] >> 1)
+            _area_dict['register'] = const.ZoneRegister((regs[_idx + const.REG_LOCK_ZONE] >> 1) & 0b1)
             _area_dict['fan'] = const.ZoneFanMode((regs[_idx + const.REG_STATE_AND_FLOW] & 0xF0) >> 4)
             _area_dict['clim'] = const.ZoneClimMode(regs[_idx + const.REG_STATE_AND_FLOW] & 0x0F)
             _area_dict['order_temp'] = regs[_idx + const.REG_TEMP_ORDER]/2
@@ -421,7 +421,7 @@ class Operations:
         if not ret:
             _LOGGER.error('Error retreive area register value')
             reg = 0
-        return ret, const.ZoneRegister(reg >> 1), const.ZoneState(reg & 0b01)
+        return ret, const.ZoneRegister((reg >> 1) & 0b1), const.ZoneState(reg & 0b01)
 
     async def async_set_area_state(self,
                                     id_zone:int = 0,
