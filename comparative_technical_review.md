@@ -4,7 +4,7 @@ Here is the comparative technical review of the two Koolnova Modbus tables: **Ko
 
 The **Modbus communication layer and zone registers 40001 to 40064** remain broadly compatible between the two versions: Modbus RTU over RS485, 9600/19200 baud rates, default format 9600 8E1, default address 49, Modbus functions 03 and 06, 16 climate zones with 4 registers per zone.
 
-However, **from register 40065 onward, the 2.0 table changes significantly**. The v1.0 system registers are not simply extended: they are **moved and replaced by a much richer new mapping**. This is the critical point for migration: a supervisor, PLC, or gateway that wrote to 40077, 40078, 40081, or 40082 in v1.0 must definitely not be reused as-is in 2.0.
+However, **from register 40065 onward, the 2.0 table changes significantly**. The v1.0 system registers are not simply extended: they are **moved and replaced by a much richer new mapping**.
 
 ---
 
