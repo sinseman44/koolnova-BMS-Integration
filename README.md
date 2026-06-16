@@ -11,6 +11,9 @@ _Disclaimer : This is not a Koolnova official integration and use at your own ri
 
 **koolnova-BMS-Integration** is an integration of koolnova system into Home Assistant using BMS (Building Management System) and Modbus RTU (RS485) protocol.
 
+> [!WARNING]
+> Koolnova has released version 2.0 of its system, and therefore of its communication method (Modbus Register table) with it. Currently, only version 1.0 is functional.
+
 ## Building Management System (BMS)
 
 With BMS, owners can monitor and manage systems, such as air conditioning, heating, ventilation, lighting or energy supply systems.
