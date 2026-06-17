@@ -5,13 +5,13 @@
     "config_flow": true,
     "documentation": "https://github.com/sinseman44/koolnova-BMS-Integration",
     "issue_tracker": "https://github.com/sinseman44/koolnova-BMS-Integration/issues",
+    "after_dependencies": ["modbus"],
     "integration_type": "device",
     "iot_class": "local_polling",
     "quality_scale": "silver",
     "loggers": ["koolnova"],
     "requirements": [
-	"pymodbus==3.11.2",
-	"pyserial==3.5"	
+        "pyserial==3.5"
     ],
     "version": "0.2.7"
 }
