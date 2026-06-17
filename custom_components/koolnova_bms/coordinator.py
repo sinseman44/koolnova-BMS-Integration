@@ -3,13 +3,8 @@ from __future__ import annotations
 from datetime import timedelta
 import logging
 
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.util import Throttle
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import (
-    CoordinatorEntity,
     DataUpdateCoordinator,
     UpdateFailed,
 )
@@ -30,12 +25,27 @@ class KoolnovaCoordinator(DataUpdateCoordinator):
                     device: Koolnova,
                 ) -> None:
         """ Class constructor """
+        self._device = device
         super().__init__(
             hass,
             _LOGGER,
             # Name of the data. For logging purposes.
             name=DOMAIN,
-            update_method=device.async_update_all_areas,
+            update_method=self._async_update_data,
             # Polling interval. Will only be polled if there are subscribers.
             update_interval=timedelta(seconds=30),
         )
+
+    async def _async_update_data(self) -> dict:
+        """ Fetch data from the Koolnova device. """
+        try:
+            data = await self._device.async_update_all_areas()
+        except Exception as err:
+            raise UpdateFailed(
+                f"Error communicating with Koolnova device: {err}"
+            ) from err
+
+        if data is None:
+            raise UpdateFailed("Koolnova device returned no update data")
+
+        return data
