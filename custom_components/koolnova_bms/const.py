@@ -1,7 +1,5 @@
 """ consts for koolnova BMS """
 
-from datetime import timedelta
-
 from homeassistant.const import Platform
 from homeassistant.components.climate.const import (
     ClimateEntityFeature,

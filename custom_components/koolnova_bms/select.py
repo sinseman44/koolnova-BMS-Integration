@@ -3,13 +3,11 @@
 
 import logging
 
-from homeassistant.core import HomeAssistant, callback, Event, State
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.components.select import SelectEntity
-from homeassistant.util import Throttle
-from homeassistant.const import UnitOfTime
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
 )

@@ -1,6 +1,5 @@
 """ local API to manage system, engines and areas """ 
 
-import re, sys, os
 import logging as log
 import asyncio
 import warnings

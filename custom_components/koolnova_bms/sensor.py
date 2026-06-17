@@ -1,29 +1,19 @@
 """ for sensors components """
 import logging
-from datetime import datetime, timedelta
 
-from homeassistant.core import HomeAssistant, callback, Event, State
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.components.sensor import (
     SensorEntity,
-    SensorDeviceClass,
-    SensorStateClass,
 )
 
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
 )
 
-from  homeassistant.helpers.event import (
-    async_track_time_interval,
-    async_track_state_change_event,
-)
-
 from homeassistant.const import (
-    ATTR_TEMPERATURE,
-    UnitOfTime,
     UnitOfTemperature
 )
 
@@ -39,7 +29,6 @@ from .koolnova.device import (
 )
 
 _LOGGER = logging.getLogger(__name__)
-MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=30)
 
 async def async_setup_entry(hass: HomeAssistant,
                             entry: ConfigEntry,

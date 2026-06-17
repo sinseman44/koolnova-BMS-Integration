@@ -1,6 +1,5 @@
 """ local API to communicate with Koolnova BMS Modbus RTU client """
 
-import re, sys, os
 import logging as log
 
 import asyncio
@@ -8,9 +7,7 @@ import asyncio
 from pymodbus import pymodbus_apply_logging_config
 from pymodbus.client import AsyncModbusSerialClient as ModbusClient
 from pymodbus.client import AsyncModbusTcpClient as ModbusTcpClient
-from pymodbus.exceptions import ModbusException
 from pymodbus.pdu import ExceptionResponse
-from pymodbus.framer.rtu import FramerRTU
 
 from . import const
 

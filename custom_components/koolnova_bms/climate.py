@@ -1,25 +1,19 @@
 """ for Climate integration. """
 from __future__ import annotations
-from datetime import timedelta
 import logging
 
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.util import Throttle
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.components.climate import (
     ClimateEntity,
-    ConfigEntry,
 )
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
-    DataUpdateCoordinator,
-    UpdateFailed,
 )
 
 from homeassistant.components.climate.const import (
     HVACMode,
-    FAN_AUTO,
     FAN_OFF,
 )
 
@@ -35,7 +29,6 @@ from .const import (
 from .coordinator import KoolnovaCoordinator
 
 from homeassistant.const import (
-    ATTR_TEMPERATURE,
     UnitOfTemperature,
 )
 
@@ -44,7 +37,6 @@ from .koolnova.const import (
     MIN_TEMP_ORDER,
     MAX_TEMP_ORDER,
     STEP_TEMP_ORDER,
-    SysState,
     ZoneState,
     ZoneClimMode,
     ZoneFanMode,

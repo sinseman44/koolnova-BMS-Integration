@@ -3,7 +3,7 @@
 from __future__ import annotations
 import logging
 
-from homeassistant.core import HomeAssistant, callback, Event, State
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -12,7 +12,6 @@ from homeassistant.components.switch import (
     SwitchDeviceClass
 )
 
-from homeassistant.util import Throttle
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
 )
