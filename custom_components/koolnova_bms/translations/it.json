@@ -40,6 +40,13 @@
                     "Debug": "Debug"
                 }
             },
+            "table_version": {
+                "title": "Versione del sistema Koolnova",
+                "description": "Seleziona la tabella dei registri Modbus usata dal sistema Koolnova. Usa il rilevamento automatico in caso di dubbio.",
+                "data": {
+                    "Table_version": "Versione della tabella Modbus"
+                }
+            },
             "areas": {
                 "title": "Configurazione di un'area",
                 "description": "Informazioni sull'area da configurare",

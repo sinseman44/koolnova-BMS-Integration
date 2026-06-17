@@ -40,6 +40,13 @@
                     "Debug": "Debug"
                 }
             },
+            "table_version": {
+                "title": "Koolnova system version",
+                "description": "Select the Modbus register table used by your Koolnova system. Use auto detect if you are unsure.",
+                "data": {
+                    "Table_version": "Modbus table version"
+                }
+            },
             "areas": {
                 "title": "Configuration d'une zone",
                 "description": "Information sur la zone à configurer",

@@ -28,6 +28,11 @@ from .koolnova.const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+TABLE_VERSION_AUTO = "Auto detect"
+TABLE_VERSION_V1 = "Koolnova 1.0"
+TABLE_VERSION_V2 = "Koolnova 2.0"
+TABLE_VERSION_OPTIONS = [TABLE_VERSION_AUTO, TABLE_VERSION_V1, TABLE_VERSION_V2]
+
 class KoolnovaConfigFlow(ConfigFlow, domain=DOMAIN):
     """ La classe qui implémente le config flow notre DOMAIN. 
         Elle doit dériver de FlowHandler
@@ -139,9 +144,8 @@ class KoolnovaConfigFlow(ConfigFlow, domain=DOMAIN):
                 self._disconnect_conn()
                 await self._set_unique_id_and_abort_if_configured()
 
-                self._user_inputs["areas"] = []
                 # go to next step
-                return await self.async_step_areas()
+                return await self.async_step_table_version()
             except CannotConnectError:
                 _LOGGER.exception("Cannot connect to koolnova system")
                 self._disconnect_conn()
@@ -205,9 +209,8 @@ class KoolnovaConfigFlow(ConfigFlow, domain=DOMAIN):
                 self._disconnect_conn()
                 await self._set_unique_id_and_abort_if_configured()
 
-                self._user_inputs["areas"] = []
                 # go to next step
-                return await self.async_step_areas()
+                return await self.async_step_table_version()
             except CannotConnectError:
                 _LOGGER.exception("Cannot connect to koolnova system")
                 self._disconnect_conn()
@@ -222,6 +225,25 @@ class KoolnovaConfigFlow(ConfigFlow, domain=DOMAIN):
         # first call or error
         return self.async_show_form(step_id="rtu", 
                                     data_schema=rtu_form,
+                                    errors=errors)
+
+    async def async_step_table_version(self,
+                                user_input: dict | None = None) -> FlowResult:
+        """ Gestion de l'étape de choix de version de table Modbus """
+        errors = {}
+        table_version_form = vol.Schema(
+            {
+                vol.Required("Table_version", default=TABLE_VERSION_AUTO): vol.In(TABLE_VERSION_OPTIONS)
+            }
+        )
+
+        if user_input:
+            self._user_inputs.update(user_input)
+            self._user_inputs["areas"] = []
+            return await self.async_step_areas()
+
+        return self.async_show_form(step_id="table_version",
+                                    data_schema=table_version_form,
                                     errors=errors)
 
     async def async_step_areas(self,
