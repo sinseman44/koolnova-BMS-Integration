@@ -3,6 +3,7 @@
 import re, sys, os
 import logging as log
 import asyncio
+import warnings
 
 from homeassistant.helpers.entity import DeviceInfo
 from ..const import DOMAIN
@@ -403,27 +404,45 @@ class Koolnova:
         ''' get areas '''
         return self._areas
 
-    def get_area(self, zone_id:int = 0) -> Area:
+    def get_area(self, zone_id:int = 0) -> Area | None:
         ''' get specific area '''
-        return self._areas[zone_id - 1]
+        warnings.warn(
+            "Koolnova.get_area() is deprecated and will be removed in a future release.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        _LOGGER.warning("Koolnova.get_area() is deprecated")
+        ret, idx = self._area_defined(id_search = zone_id)
+        if not ret:
+            return None
+        return self._areas[idx]
 
-    async def async_update_area(self, zone_id:int = 0) -> bool:
+    async def async_update_area(self, zone_id:int = 0) -> tuple[bool, Area | None]:
         """ update specific area from zone_id """
+        warnings.warn(
+            "Koolnova.async_update_area() is deprecated and will be removed in a future release.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        _LOGGER.warning("Koolnova.async_update_area() is deprecated")
+        ret, idx = self._area_defined(id_search = zone_id)
+        if not ret:
+            _LOGGER.error("Area not defined ...")
+            return False, None
+
         ret, infos = await self._client.async_area_registered(zone_id = zone_id)
         if not ret:
             _LOGGER.error("Error retreiving area ({}) values".format(zone_id))
-            return ret, None
-        for idx, area in enumerate(self._areas):
-                if area.id_zone == zone_id:
-                    # update areas list values from modbus response
-                    self._areas[idx].state = infos['state']
-                    self._areas[idx].register = infos['register']
-                    self._areas[idx].fan_mode = infos['fan']
-                    self._areas[idx].clim_mode = infos['clim']
-                    self._areas[idx].real_temp = infos['real_temp']
-                    self._areas[idx].order_temp = infos['order_temp']
-                    break
-        return ret, self._areas[zone_id - 1]
+            return False, None
+
+        # update areas list values from modbus response
+        self._areas[idx].state = infos['state']
+        self._areas[idx].register = infos['register']
+        self._areas[idx].fan_mode = infos['fan']
+        self._areas[idx].clim_mode = infos['clim']
+        self._areas[idx].real_temp = infos['real_temp']
+        self._areas[idx].order_temp = infos['order_temp']
+        return True, self._areas[idx]
 
     async def async_update_all_areas(self) -> list:
         """ update all areas registered and all engines values """
