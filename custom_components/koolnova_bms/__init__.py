@@ -4,6 +4,7 @@ import logging
 
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.exceptions import ConfigEntryNotReady
 
 from .koolnova.device import Koolnova
 
@@ -63,23 +64,33 @@ async def async_setup_entry(hass: HomeAssistant,
         # connect to modbus client
         ret = await device.async_connect()
         if not ret:
-            _LOGGER.error("Something went wrong when connecting to modbus ...")
-            return False
+            raise ConfigEntryNotReady("Unable to connect to Koolnova Modbus client")
         # update attributes
         ret = await device.async_update()
         if not ret:
-            _LOGGER.error("Something went wrong when updating datas ...")
-            return False
+            raise ConfigEntryNotReady("Unable to retrieve initial Koolnova data")
         # record each area in device
-        _LOGGER.debug("Koolnova areas: {}".format(entry.data['areas']))
+        _LOGGER.debug("Koolnova areas: %s", entry.data['areas'])
         for area in entry.data['areas']:
-            await device.async_add_manual_registered_area(name=area['Name'], 
+            ret = await device.async_add_manual_registered_area(name=area['Name'],
                                                     id_zone=area['Area_id'])
+            if not ret:
+                raise ConfigEntryNotReady(
+                    f"Unable to register Koolnova area {area['Area_id']}"
+                )
         hass.data[DOMAIN]['device'] = device
         coordinator = KoolnovaCoordinator(hass, device)
         hass.data[DOMAIN]['coordinator'] = coordinator
+    except ConfigEntryNotReady:
+        if device and device.connected():
+            device.disconnect()
+        raise
     except Exception as e:
-        _LOGGER.exception("Something went wrong ... {}".format(e))
+        if device and device.connected():
+            device.disconnect()
+        raise ConfigEntryNotReady(
+            f"Unexpected error while setting up Koolnova integration: {e}"
+        ) from e
 
     # Propagation du configEntry à toutes les plateformes déclarées dans notre intégration
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
