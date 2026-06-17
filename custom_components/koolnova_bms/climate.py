@@ -59,8 +59,9 @@ async def async_setup_entry(hass: HomeAssistant,
     """Setup switch entries"""
 
     entities = []
-    coordinator = hass.data[DOMAIN]["coordinator"]
-    device = hass.data[DOMAIN]["device"]
+    runtime_data = hass.data[DOMAIN][entry.entry_id]
+    coordinator = runtime_data["coordinator"]
+    device = runtime_data["device"]
 
     for area in device.areas:
         entities.append(AreaClimateEntity(coordinator, device, area))

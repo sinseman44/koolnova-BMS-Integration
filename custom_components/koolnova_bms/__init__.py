@@ -78,9 +78,11 @@ async def async_setup_entry(hass: HomeAssistant,
                 raise ConfigEntryNotReady(
                     f"Unable to register Koolnova area {area['Area_id']}"
                 )
-        hass.data[DOMAIN]['device'] = device
         coordinator = KoolnovaCoordinator(hass, device)
-        hass.data[DOMAIN]['coordinator'] = coordinator
+        hass.data[DOMAIN][entry.entry_id] = {
+            "device": device,
+            "coordinator": coordinator,
+        }
     except ConfigEntryNotReady:
         if device and device.connected():
             device.disconnect()
@@ -103,13 +105,22 @@ async def async_unload_entry(hass: HomeAssistant,
     # This is called when an entry/configured device is to be removed. The class
     # needs to unload itself, and remove callbacks
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unload_ok:
+        runtime_data = hass.data[DOMAIN].pop(entry.entry_id, None)
+        if runtime_data:
+            device = runtime_data["device"]
+            if device.connected():
+                device.disconnect()
     _LOGGER.debug("Unload entries: {}".format(unload_ok))
     return unload_ok
 
 async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """ Handle removal of an entry """
     _LOGGER.debug("Remove entry")
-    if hass.data[DOMAIN]:
-        device = hass.data[DOMAIN]['device']
+    if DOMAIN in hass.data:
+        runtime_data = hass.data[DOMAIN].pop(entry.entry_id, None)
+        if not runtime_data:
+            return
+        device = runtime_data["device"]
         if device.connected():
             device.disconnect()

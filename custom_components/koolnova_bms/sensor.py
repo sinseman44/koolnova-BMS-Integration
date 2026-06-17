@@ -48,8 +48,9 @@ async def async_setup_entry(hass: HomeAssistant,
         ConfigEntry passée en argument
     """
     entities = []
-    device = hass.data[DOMAIN]["device"]
-    coordinator = hass.data[DOMAIN]["coordinator"]
+    runtime_data = hass.data[DOMAIN][entry.entry_id]
+    device = runtime_data["device"]
+    coordinator = runtime_data["coordinator"]
     if entry.data.get("Mode") == "Modbus RTU":
         entities.append(DiagnosticsSensor(device, "Device", entry.data))
         entities.append(DiagnosticsSensor(device, "Address", entry.data))

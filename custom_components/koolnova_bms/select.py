@@ -45,8 +45,9 @@ async def async_setup_entry(hass: HomeAssistant,
                             ):
     """ Setup select entries """
 
-    device = hass.data[DOMAIN]["device"]
-    coordinator = hass.data[DOMAIN]["coordinator"]
+    runtime_data = hass.data[DOMAIN][entry.entry_id]
+    device = runtime_data["device"]
+    coordinator = runtime_data["coordinator"]
 
     entities = [
         GlobalModeSelect(coordinator, device),
