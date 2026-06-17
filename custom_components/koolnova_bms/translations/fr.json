@@ -55,6 +55,9 @@
             "area_not_registered": "Cette zone n'est pas enregistrée sur le système Koolnova",
             "area_already_configured": "Cette zone est déjà configurée",
             "zone_id_error": "L'identifiant de zone doit être un nombre entre 1 et 16"
+        },
+        "abort": {
+            "already_configured": "Ce contrôleur Koolnova est déjà configuré"
         }
     }
 }

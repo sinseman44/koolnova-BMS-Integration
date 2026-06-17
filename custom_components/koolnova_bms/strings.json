@@ -55,6 +55,9 @@
             "area_not_registered": "This Area is not registered to the Koolnova system",
             "area_already_configured": "This Area is already configured",
             "zone_id_error": "Area Id must an integer between 1 and 16"
+        },
+        "abort": {
+            "already_configured": "This Koolnova controller is already configured"
         }
     }
 }

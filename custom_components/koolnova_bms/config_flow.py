@@ -6,7 +6,7 @@ import voluptuous as vol
 from homeassistant import exceptions
 import homeassistant.helpers.config_validation as cv
 from homeassistant.config_entries import ConfigFlow
-from homeassistant.data_entry_flow import FlowResult
+from homeassistant.data_entry_flow import AbortFlow, FlowResult
 from homeassistant.const import CONF_BASE
 from .const import DOMAIN, CONF_NAME
 
@@ -36,9 +36,33 @@ class KoolnovaConfigFlow(ConfigFlow, domain=DOMAIN):
     # La version de notre configFlow va permettre de migrer les entités
     # vers une version plus récente en cas de changement
     VERSION = 1
-    # le dictionnaire qui va recevoir tous les user_input. On le vide au démarrage
-    _user_inputs: dict = {}
-    _conn = None
+
+    def __init__(self) -> None:
+        """Initialize config flow instance state."""
+        # le dictionnaire qui va recevoir tous les user_input. On le vide au démarrage
+        self._user_inputs: dict = {}
+        self._conn: Operations | None = None
+
+    def _disconnect_conn(self) -> None:
+        """Disconnect the temporary Modbus client used during config flow."""
+        if self._conn and self._conn.connected():
+            self._conn.disconnect()
+
+    async def _set_unique_id_and_abort_if_configured(self) -> None:
+        """Set a stable unique id for this controller and abort duplicates."""
+        if self._user_inputs["Mode"] == "Modbus RTU":
+            unique_id = (
+                f"rtu:{self._user_inputs['Device']}:"
+                f"{self._user_inputs['Address']}"
+            )
+        else:
+            unique_id = (
+                f"tcp:{self._user_inputs['Address']}:"
+                f"{self._user_inputs['Port']}:"
+                f"{self._user_inputs['Modbus']}"
+            )
+        await self.async_set_unique_id(unique_id)
+        self._abort_if_unique_id_configured()
 
     async def async_step_user(self,
                             user_input: dict | None = None) -> FlowResult:
@@ -110,17 +134,23 @@ class KoolnovaConfigFlow(ConfigFlow, domain=DOMAIN):
                 _LOGGER.debug("test communication with koolnova system")
                 ret, _ = await self._conn.async_system_status()
                 if not ret:
-                    self._conn.disconnect()
+                    self._disconnect_conn()
                     raise CannotConnectError(reason="Communication error")
-                self._conn.disconnect()
+                self._disconnect_conn()
+                await self._set_unique_id_and_abort_if_configured()
 
                 self._user_inputs["areas"] = []
                 # go to next step
                 return await self.async_step_areas()
             except CannotConnectError:
                 _LOGGER.exception("Cannot connect to koolnova system")
+                self._disconnect_conn()
                 errors[CONF_BASE] = "cannot_connect"
+            except AbortFlow:
+                self._disconnect_conn()
+                raise
             except Exception as e:
+                self._disconnect_conn()
                 _LOGGER.exception("Config Flow generic error")
 
         # first call or error
@@ -170,17 +200,23 @@ class KoolnovaConfigFlow(ConfigFlow, domain=DOMAIN):
                 #_LOGGER.debug("test communication with koolnova system")
                 ret, _ = await self._conn.async_system_status()
                 if not ret:
-                    self._conn.disconnect()
+                    self._disconnect_conn()
                     raise CannotConnectError(reason="Communication error")
-                self._conn.disconnect()
+                self._disconnect_conn()
+                await self._set_unique_id_and_abort_if_configured()
 
                 self._user_inputs["areas"] = []
                 # go to next step
                 return await self.async_step_areas()
             except CannotConnectError:
                 _LOGGER.exception("Cannot connect to koolnova system")
+                self._disconnect_conn()
                 errors[CONF_BASE] = "cannot_connect"
+            except AbortFlow:
+                self._disconnect_conn()
+                raise
             except Exception as e:
+                self._disconnect_conn()
                 _LOGGER.exception("Config Flow generic error")
 
         # first call or error
@@ -219,16 +255,16 @@ class KoolnovaConfigFlow(ConfigFlow, domain=DOMAIN):
                     try:
                         if not self._conn.connected():
                             await self._conn.async_connect()
-                        if user_input['Area_id'] > NB_ZONE_MAX:
+                        if user_input['Area_id'] < 1 or user_input['Area_id'] > NB_ZONE_MAX:
                             raise ZoneIdError(reason="Area_id must be between 1 and 16")
                         #_LOGGER.debug("test area registered with id: {}".format(user_input['Area_id']))
                         # test if area is configured into koolnova system 
                         ret, _ = await self._conn.async_area_registered(user_input["Area_id"])
                         if not ret:
-                            self._conn.disconnect()
+                            self._disconnect_conn()
                             raise AreaNotRegistredError(reason="Area Id is not registred")
                     
-                        self._conn.disconnect()
+                        self._disconnect_conn()
                         # Update dict
                         self._user_inputs["areas"].append(user_input)
                         # Create entities
@@ -236,6 +272,7 @@ class KoolnovaConfigFlow(ConfigFlow, domain=DOMAIN):
                                                         data=self._user_inputs)
                     except CannotConnectError:
                         _LOGGER.exception("Cannot connect to koolnova system")
+                        self._disconnect_conn()
                         errors[CONF_BASE] = "cannot_connect"
                     except AreaNotRegistredError:
                         _LOGGER.exception("Area (id:{}) is not registered to the koolnova system".format(user_input['Area_id']))
@@ -244,6 +281,7 @@ class KoolnovaConfigFlow(ConfigFlow, domain=DOMAIN):
                         _LOGGER.exception("Area Id must be between 1 and 16")
                         errors[CONF_BASE] = "zone_id_error"
                     except Exception as e:
+                        self._disconnect_conn()
                         _LOGGER.exception("Config Flow generic error")
                 else:
                     #_LOGGER.debug("Config_flow [zone] - Une autre zone à configurer")
