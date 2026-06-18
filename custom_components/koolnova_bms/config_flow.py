@@ -143,7 +143,7 @@ class KoolnovaConfigFlow(ConfigFlow, domain=DOMAIN):
                 if not self._conn.connected():
                     raise CannotConnectError(reason="Client Modbus TCP not connected")
                 _LOGGER.debug("test communication with koolnova system")
-                ret, _ = await self._conn.async_system_status()
+                ret = await self._conn.async_test_communication()
                 if not ret:
                     self._disconnect_conn()
                     raise CannotConnectError(reason="Communication error")
@@ -208,7 +208,7 @@ class KoolnovaConfigFlow(ConfigFlow, domain=DOMAIN):
                 if not self._conn.connected():
                     raise CannotConnectError(reason="Client Modbus RTU not connected")
                 #_LOGGER.debug("test communication with koolnova system")
-                ret, _ = await self._conn.async_system_status()
+                ret = await self._conn.async_test_communication()
                 if not ret:
                     self._disconnect_conn()
                     raise CannotConnectError(reason="Communication error")
@@ -245,9 +245,32 @@ class KoolnovaConfigFlow(ConfigFlow, domain=DOMAIN):
 
         if user_input:
             self._user_inputs.update(user_input)
-            self._user_inputs["Table_version"] = normalize_table_version(
+            table_version = normalize_table_version(
                 self._user_inputs["Table_version"]
             )
+            if table_version == TABLE_VERSION_AUTO:
+                try:
+                    if not self._conn.connected():
+                        await self._conn.async_connect()
+                    ret, table_version = await self._conn.async_detect_table_version()
+                    self._disconnect_conn()
+                    if not ret:
+                        raise CannotConnectError(reason="Unable to detect Modbus table version")
+                except CannotConnectError:
+                    _LOGGER.exception("Cannot detect Koolnova Modbus table version")
+                    self._disconnect_conn()
+                    errors[CONF_BASE] = "cannot_connect"
+                    return self.async_show_form(step_id="table_version",
+                                                data_schema=table_version_form,
+                                                errors=errors)
+                except Exception:
+                    _LOGGER.exception("Config Flow table version detection error")
+                    self._disconnect_conn()
+                    errors[CONF_BASE] = "cannot_connect"
+                    return self.async_show_form(step_id="table_version",
+                                                data_schema=table_version_form,
+                                                errors=errors)
+            self._user_inputs["Table_version"] = table_version
             self._user_inputs["areas"] = []
             return await self.async_step_areas()
 

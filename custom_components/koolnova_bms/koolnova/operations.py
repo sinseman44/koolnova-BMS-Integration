@@ -167,6 +167,45 @@ class Operations:
         if self._client.connected:
             self._client.close()
 
+    async def async_test_communication(self) -> bool:
+        """Test communication using a common zone register."""
+        _, ret = await self.__async_read_register(const.REG_START_ZONE)
+        return ret
+
+    async def async_detect_table_version(self) -> (bool, str):
+        """Detect the Koolnova Modbus table version.
+
+        Register 40073 is used as the discriminator:
+        - v1.0 uses it as AC1 airflow programming, with legal values 1..4.
+        - v2.0 uses it as control unit model/software version.
+        """
+        reg, ret = await self.__async_read_register(const.REG_V2_MODEL_VERSION)
+        if not ret:
+            _LOGGER.error("Unable to read Koolnova table version candidate register")
+            return False, const.TABLE_VERSION_DEFAULT
+
+        msb = (reg >> 8) & 0xFF
+        lsb = reg & 0xFF
+
+        if reg in const.V1_FLOW_STATE_VALUES:
+            table_version = const.TABLE_VERSION_V1
+        elif msb == 0x00 and lsb != 0:
+            table_version = const.TABLE_VERSION_V2
+        else:
+            _LOGGER.warning(
+                "Unknown Koolnova table version pattern from register 40073 value %s; using %s",
+                hex(reg),
+                const.TABLE_VERSION_DEFAULT,
+            )
+            table_version = const.TABLE_VERSION_DEFAULT
+
+        _LOGGER.debug(
+            "Detected Koolnova Modbus table version %s from register 40073 value %s",
+            table_version,
+            hex(reg),
+        )
+        return True, table_version
+
     async def async_discover_registered_areas(self) -> list:
         ''' Discover all areas registered to the system '''
         regs, ret = await self.__async_read_registers(start_reg=const.REG_START_ZONE, 

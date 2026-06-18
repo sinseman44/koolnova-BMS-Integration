@@ -35,6 +35,12 @@ TABLE_VERSION_OPTIONS = (
     TABLE_VERSION_V2,
 )
 
+# Le registre logique 40073 est un bon candidat pour différencier les tables :
+# - en v1.0, c'est la programmation du débit de la machine AC1, avec valeurs 1 à 4 ;
+# - en v2.0, c'est le modèle et la version logiciel de l'unité de contrôle.
+REG_V2_MODEL_VERSION = 72
+V1_FLOW_STATE_VALUES = (1, 2, 3, 4)
+
 # Chaque zone climatique est définie par 4 registres et il y a 16 zones possibles,
 # donc le climat est défini par 64 registres
 REG_START_ZONE = 0
