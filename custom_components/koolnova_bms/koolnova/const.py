@@ -25,6 +25,16 @@ NUM_REG_PER_ZONE = 4
 # Nombre max de zone pour un systeme
 NB_ZONE_MAX = 16
 
+TABLE_VERSION_AUTO = "auto"
+TABLE_VERSION_V1 = "v1"
+TABLE_VERSION_V2 = "v2"
+TABLE_VERSION_DEFAULT = TABLE_VERSION_V1
+TABLE_VERSION_OPTIONS = (
+    TABLE_VERSION_AUTO,
+    TABLE_VERSION_V1,
+    TABLE_VERSION_V2,
+)
+
 # Chaque zone climatique est définie par 4 registres et il y a 16 zones possibles,
 # donc le climat est défini par 64 registres
 REG_START_ZONE = 0
@@ -90,18 +100,15 @@ MIN_TEMP = 0.0
 STEP_TEMP = 0.5
 
 # (4 registres: 64 -> 67) Debit des machines (0: arret -> 15: debit maximum)
-REG_START_FLOW_ENGINE = 64
 NUM_REG_FLOG_ENGINE = 4
 FLOW_ENGINE_VAL_MAX = 15
 FLOW_ENGINE_VAL_MIN = 0
 
 # (4 registres : 68 -> 71) Température de consigne de la machine.
 # Valeur décimale de 30 à 60 = double de la temp de consigne des consignes AC1, AC2, AC3 et AC4
-REG_START_ORDER_TEMP = 68
 NUM_REG_ORDER_TEMP = 4
 
 # (4 registres : 72 -> 75) Programmation des débit des machines du système
-REG_START_FLOW_STATE_ENGINE = 72
 NUM_REG_FLOW_STATE_ENGINE = 4
 
 class FlowEngine(Enum):
@@ -114,11 +121,6 @@ class FlowEngine(Enum):
         return self.value
 
 # Communication Modbus
-REG_COMM = 76
-
-REG_ADDR_MODBUS = 77 # dispo (1 - 127)
-REG_EFFICIENCY = 78
-
 # Point d'equilibre entre efficience/vitesse du système de zone
 # chiffre élevé = meilleur efficience
 # chiffre bas = temp réglée atteinte au plus tot
@@ -132,9 +134,6 @@ class Efficiency(Enum):
     def __int__(self):
         return self.value
 
-REG_CLIM_ID = 79
-REG_SYS_STATE = 80
-
 class SysState(Enum):
     SYS_STATE_OFF = 0
     SYS_STATE_ON = 1
@@ -142,14 +141,75 @@ class SysState(Enum):
     def __int__(self):
         return self.value
 
-REG_GLOBAL_MODE = 81
-
 class GlobalMode(Enum):
+    VENTILATION = 0
     COLD = 1
     HEAT = 2
+    DEHUMIDIFICATION = 3
     HEATING_FLOOR = 4
     REFRESHING_FLOOR = 5
     HEATING_FLOOR_2 = 6
 
     def __int__(self):
         return self.value
+
+REG_KEY_START_FLOW_ENGINE = "start_flow_engine"
+REG_KEY_START_ORDER_TEMP = "start_order_temp"
+REG_KEY_START_FLOW_STATE_ENGINE = "start_flow_state_engine"
+REG_KEY_COMM = "comm"
+REG_KEY_ADDR_MODBUS = "addr_modbus"
+REG_KEY_EFFICIENCY = "efficiency"
+REG_KEY_CLIM_ID = "clim_id"
+REG_KEY_SYS_STATE = "sys_state"
+REG_KEY_GLOBAL_MODE = "global_mode"
+
+REGISTER_MAP_V1 = {
+    REG_KEY_START_FLOW_ENGINE: 64,
+    REG_KEY_START_ORDER_TEMP: 68,
+    REG_KEY_START_FLOW_STATE_ENGINE: 72,
+    REG_KEY_COMM: 76,
+    REG_KEY_ADDR_MODBUS: 77,
+    REG_KEY_EFFICIENCY: 78,
+    REG_KEY_CLIM_ID: 79,
+    REG_KEY_SYS_STATE: 80,
+    REG_KEY_GLOBAL_MODE: 81,
+}
+
+REGISTER_MAP_V2 = {
+    REG_KEY_START_FLOW_ENGINE: 92,
+    REG_KEY_START_ORDER_TEMP: 96,
+    REG_KEY_START_FLOW_STATE_ENGINE: 100,
+    REG_KEY_COMM: 104,
+    REG_KEY_ADDR_MODBUS: 105,
+    REG_KEY_EFFICIENCY: None,
+    REG_KEY_CLIM_ID: 107,
+    REG_KEY_SYS_STATE: 108,
+    REG_KEY_GLOBAL_MODE: 109,
+}
+
+REGISTER_MAPS = {
+    TABLE_VERSION_V1: REGISTER_MAP_V1,
+    TABLE_VERSION_V2: REGISTER_MAP_V2,
+}
+
+def normalize_table_version(table_version:str | None) -> str:
+    """Normalize stored/user-facing table version values."""
+    if table_version in TABLE_VERSION_OPTIONS:
+        return table_version
+    if table_version == "Koolnova 2.0":
+        return TABLE_VERSION_V2
+    if table_version == "Koolnova 1.0":
+        return TABLE_VERSION_V1
+    if table_version == "Auto detect":
+        return TABLE_VERSION_AUTO
+    return TABLE_VERSION_DEFAULT
+
+def register_map_for_table_version(table_version:str | None) -> dict:
+    """Return the register map for a normalized table version.
+
+    Auto-detection is not implemented yet. Keep it conservative by using v1.0,
+    which preserves the previous integration behavior.
+    """
+    if table_version == TABLE_VERSION_AUTO:
+        table_version = TABLE_VERSION_DEFAULT
+    return REGISTER_MAPS[table_version or TABLE_VERSION_DEFAULT]

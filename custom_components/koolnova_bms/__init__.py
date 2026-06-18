@@ -23,6 +23,7 @@ async def async_setup_entry(hass: HomeAssistant,
     debug:bool = entry.data['Debug']
     timeout:int = entry.data['Timeout']
     name: str = entry.data['Name']
+    table_version: str | None = entry.data.get("Table_version")
     if entry.data['Mode'] == 'Modbus RTU':
         port: str = entry.data['Device']
         addr: int = entry.data['Address']
@@ -39,7 +40,8 @@ async def async_setup_entry(hass: HomeAssistant,
                             baudrate=baudrate,
                             parity=parity,
                             bytesize=bytesize,
-                            stopbits=stopbits)
+                            stopbits=stopbits,
+                            table_version=table_version)
     elif entry.data['Mode'] == 'Modbus TCP':
         port:int = entry.data['Port']
         addr:str = entry.data['Address']
@@ -56,7 +58,8 @@ async def async_setup_entry(hass: HomeAssistant,
                             modbus=modbus,
                             retries=retries,
                             reco_delay_min=reco_delay_min,
-                            reco_delay_max=reco_delay_max)
+                            reco_delay_max=reco_delay_max,
+                            table_version=table_version)
     else:
         _LOGGER.error("Integration initialisation failed (Mode unknown)")
         return False

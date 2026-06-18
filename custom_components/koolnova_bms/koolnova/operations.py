@@ -35,6 +35,12 @@ class Operations:
         self._mode = mode
         self._timeout = timeout
         self._debug = debug
+        self._table_version = const.normalize_table_version(
+            kwargs.get('table_version')
+        )
+        self._registers = const.register_map_for_table_version(
+            self._table_version
+        )
         self.__dict__.update(kwargs)
         _LOGGER.debug("[OPERATION] dict: {}".format(self.__dict__))
         if self._mode == 'Modbus RTU':
@@ -151,6 +157,11 @@ class Operations:
         ''' get modbus client status '''
         return self._client.connected
 
+    @property
+    def supports_efficiency(self) -> bool:
+        """Return whether the selected register map supports efficiency."""
+        return self._registers[const.REG_KEY_EFFICIENCY] is not None
+
     def disconnect(self) -> None:
         ''' close the underlying socket connection '''
         if self._client.connected:
@@ -244,7 +255,7 @@ class Operations:
 
     async def async_system_status(self) -> (bool, const.SysState):
         ''' Read system status register '''
-        reg, ret = await self.__async_read_register(const.REG_SYS_STATE)
+        reg, ret = await self.__async_read_register(self._registers[const.REG_KEY_SYS_STATE])
         if not ret:
             _LOGGER.error('Error retreive system status')
             reg = 0
@@ -254,14 +265,14 @@ class Operations:
                                         opt:const.SysState,
                                         ) -> bool:
         ''' Write system status '''
-        ret = await self.__async_write_register(reg = const.REG_SYS_STATE, val = int(opt))
+        ret = await self.__async_write_register(reg = self._registers[const.REG_KEY_SYS_STATE], val = int(opt))
         if not ret:
             _LOGGER.error('Error writing system status')
         return ret
 
     async def async_global_mode(self) -> (bool, const.GlobalMode):
         ''' Read global mode '''
-        reg, ret = await self.__async_read_register(const.REG_GLOBAL_MODE)
+        reg, ret = await self.__async_read_register(self._registers[const.REG_KEY_GLOBAL_MODE])
         if not ret:
             _LOGGER.error('Error retreive global mode')
             reg = 1
@@ -271,14 +282,16 @@ class Operations:
                                     opt:const.GlobalMode,
                                     ) -> bool:
         ''' Write global mode '''
-        ret = await self.__async_write_register(reg = const.REG_GLOBAL_MODE, val = int(opt))
+        ret = await self.__async_write_register(reg = self._registers[const.REG_KEY_GLOBAL_MODE], val = int(opt))
         if not ret:
             _LOGGER.error('Error writing global mode')
         return ret
 
     async def async_efficiency(self) -> (bool, const.Efficiency):
         ''' read efficiency/speed '''
-        reg, ret = await self.__async_read_register(const.REG_EFFICIENCY)
+        if not self.supports_efficiency:
+            return True, const.Efficiency.MED_EFF
+        reg, ret = await self.__async_read_register(self._registers[const.REG_KEY_EFFICIENCY])
         if not ret:
             _LOGGER.error('Error retreive efficiency')
             reg = 1
@@ -288,7 +301,10 @@ class Operations:
                                     opt:const.GlobalMode,
                                     ) -> bool:
         ''' Write efficiency '''
-        ret = await self.__async_write_register(reg = const.REG_EFFICIENCY, val = int(opt))
+        if not self.supports_efficiency:
+            _LOGGER.warning("Efficiency register is not supported by this Modbus table")
+            return False
+        ret = await self.__async_write_register(reg = self._registers[const.REG_KEY_EFFICIENCY], val = int(opt))
         if not ret:
             _LOGGER.error('Error writing efficiency')
         return ret
@@ -296,7 +312,7 @@ class Operations:
     async def async_engines_throughput(self) -> (bool, list):
         ''' read engines throughput AC1, AC2, AC3, AC4 '''
         engines_lst = []
-        regs, ret = await self.__async_read_registers(const.REG_START_FLOW_ENGINE,
+        regs, ret = await self.__async_read_registers(self._registers[const.REG_KEY_START_FLOW_ENGINE],
                                                         const.NUM_OF_ENGINES)
         if ret:
             for idx, reg in enumerate(regs):
@@ -311,7 +327,7 @@ class Operations:
         ''' read engine throughput specified by id '''
         if engine_id < 1 or engine_id > 4:
             raise UnitIdError("engine Id must be between 1 and 4")
-        reg, ret = await self.__async_read_register(const.REG_START_FLOW_ENGINE + (engine_id - 1))
+        reg, ret = await self.__async_read_register(self._registers[const.REG_KEY_START_FLOW_ENGINE] + (engine_id - 1))
         if not ret:
             _LOGGER.error('Error retreive engine throughput for id:{}'.format(engine_id))
             reg = 0
@@ -323,7 +339,7 @@ class Operations:
         ''' read engine state specified by id '''
         if engine_id < 1 or engine_id > 4:
             raise UnitIdError("Engine id must be between 1 and 4")
-        reg, ret = await self.__async_read_register(const.REG_START_FLOW_STATE_ENGINE + (engine_id - 1))
+        reg, ret = await self.__async_read_register(self._registers[const.REG_KEY_START_FLOW_STATE_ENGINE] + (engine_id - 1))
         if not ret:
             _LOGGER.error('Error retreive engine state for id:{}'.format(engine_id))
             reg = 4
@@ -336,7 +352,7 @@ class Operations:
         ''' write engine state specified by id '''
         if engine_id < 1 or engine_id > 4:
             raise UnitIdError("Engine id must be between 1 and 4")
-        ret = await self.__async_write_register(reg = const.REG_START_FLOW_STATE_ENGINE + (engine_id - 1), val = int(opt))
+        ret = await self.__async_write_register(reg = self._registers[const.REG_KEY_START_FLOW_STATE_ENGINE] + (engine_id - 1), val = int(opt))
         if not ret:
             _LOGGER.error('Error writing engine state for id:{}'.format(engine_id))
         return ret
@@ -347,7 +363,7 @@ class Operations:
         ''' read engine order temperature specified by id '''
         if engine_id < 1 or engine_id > 4:
             raise UnitIdError("Engine id must be between 1 and 4")
-        reg, ret = await self.__async_read_register(const.REG_START_ORDER_TEMP + (engine_id - 1))
+        reg, ret = await self.__async_read_register(self._registers[const.REG_KEY_START_ORDER_TEMP] + (engine_id - 1))
         if not ret:
             _LOGGER.error('Error retreive engine order temp for id:{}'.format(engine_id))
             reg = 0
@@ -356,7 +372,7 @@ class Operations:
     async def async_engine_orders_temp(self) -> (bool, list):
         ''' read orders temperature for engines : AC1, AC2, AC3, AC4 '''
         engines_lst = []
-        regs, ret = await self.__async_read_registers(const.REG_START_ORDER_TEMP, const.NUM_OF_ENGINES)
+        regs, ret = await self.__async_read_registers(self._registers[const.REG_KEY_START_ORDER_TEMP], const.NUM_OF_ENGINES)
         if ret:
             for idx, reg in enumerate(regs):
                 engines_lst.append(reg/2)

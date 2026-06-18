@@ -15,6 +15,7 @@ from homeassistant.helpers.update_coordinator import (
 from .const import (
     DOMAIN,
     GLOBAL_MODES,
+    GLOBAL_MODES_V2,
     GLOBAL_MODE_TRANSLATION,
     EFF_MODES,
     EFF_TRANSLATION,
@@ -49,8 +50,9 @@ async def async_setup_entry(hass: HomeAssistant,
 
     entities = [
         GlobalModeSelect(coordinator, device),
-        EfficiencySelect(coordinator, device),
     ]
+    if device.supports_efficiency:
+        entities.append(EfficiencySelect(coordinator, device))
 
     for engine in device.engines:
         entities.append(EngineStateSelect(coordinator, device, engine))
@@ -66,14 +68,14 @@ class GlobalModeSelect(CoordinatorEntity, SelectEntity):
                     device: Koolnova, # pylint: disable=unused-argument,
                 ) -> None:
         super().__init__(coordinator)
-        self._attr_options = GLOBAL_MODES
+        self._attr_options = GLOBAL_MODES_V2 if device.table_version == "v2" else GLOBAL_MODES
         self._device = device
         self._attr_name = f"{self._device.name} global HVAC mode"
         self._attr_device_info = device.device_info
         self._attr_icon = "mdi:cog-clockwise"
         self._attr_unique_id = f"{DOMAIN}-{self._device.name}-Global-HVACMode-select"
         self.__select_option(
-            GLOBAL_MODE_TRANSLATION[int(self._device.global_mode)]
+            GLOBAL_MODE_TRANSLATION.get(int(self._device.global_mode), GLOBAL_MODES[0])
         )
 
     def __select_option(self, option: str) -> None:
@@ -97,7 +99,7 @@ class GlobalModeSelect(CoordinatorEntity, SelectEntity):
             Retrieve latest state of global mode """
         _LOGGER.debug("[UPDATE] Global Mode: {}".format(self.coordinator.data['glob']))
         self.__select_option(
-            GLOBAL_MODE_TRANSLATION[int(self.coordinator.data['glob'])]
+            GLOBAL_MODE_TRANSLATION.get(int(self.coordinator.data['glob']), GLOBAL_MODES[0])
         )
         self.async_write_ha_state()
 

@@ -23,15 +23,21 @@ from .koolnova.const import (
     DEFAULT_PARITY,
     DEFAULT_STOPBITS,
     DEFAULT_BYTESIZE,
-    NB_ZONE_MAX
+    NB_ZONE_MAX,
+    TABLE_VERSION_AUTO,
+    TABLE_VERSION_V1,
+    TABLE_VERSION_V2,
+    normalize_table_version,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
-TABLE_VERSION_AUTO = "Auto detect"
-TABLE_VERSION_V1 = "Koolnova 1.0"
-TABLE_VERSION_V2 = "Koolnova 2.0"
-TABLE_VERSION_OPTIONS = [TABLE_VERSION_AUTO, TABLE_VERSION_V1, TABLE_VERSION_V2]
+TABLE_VERSION_LABELS = {
+    TABLE_VERSION_AUTO: "Auto detect",
+    TABLE_VERSION_V1: "Koolnova 1.0",
+    TABLE_VERSION_V2: "Koolnova 2.0",
+}
+TABLE_VERSION_OPTIONS = list(TABLE_VERSION_LABELS.values())
 
 class KoolnovaConfigFlow(ConfigFlow, domain=DOMAIN):
     """ La classe qui implémente le config flow notre DOMAIN. 
@@ -233,12 +239,15 @@ class KoolnovaConfigFlow(ConfigFlow, domain=DOMAIN):
         errors = {}
         table_version_form = vol.Schema(
             {
-                vol.Required("Table_version", default=TABLE_VERSION_AUTO): vol.In(TABLE_VERSION_OPTIONS)
+                vol.Required("Table_version", default=TABLE_VERSION_LABELS[TABLE_VERSION_AUTO]): vol.In(TABLE_VERSION_OPTIONS)
             }
         )
 
         if user_input:
             self._user_inputs.update(user_input)
+            self._user_inputs["Table_version"] = normalize_table_version(
+                self._user_inputs["Table_version"]
+            )
             self._user_inputs["areas"] = []
             return await self.async_step_areas()
 

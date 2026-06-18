@@ -239,6 +239,9 @@ class Koolnova:
         self._name = name
         self._debug = debug
         self._timeout = timeout
+        self._table_version = const.normalize_table_version(
+            kwargs.get('table_version')
+        )
         self.__dict__.update(kwargs)
         if self._mode == "Modbus RTU":
             self._rtu_port = kwargs.get('port', '')
@@ -255,7 +258,8 @@ class Koolnova:
                                         baudrate=self._rtu_baudrate,
                                         parity=self._rtu_parity,
                                         bytesize=self._rtu_bytesize,
-                                        stopbits=self._rtu_stopbits)
+                                        stopbits=self._rtu_stopbits,
+                                        table_version=self._table_version)
         elif self._mode == "Modbus TCP":
             self._tcp_port = kwargs.get('port', const.DEFAULT_TCP_PORT)
             self._tcp_addr = kwargs.get('addr', const.DEFAULT_TCP_ADDR)
@@ -271,7 +275,8 @@ class Koolnova:
                                         modbus=self._tcp_modbus,
                                         retries=self._tcp_retries,
                                         reco_delay_min=self._tcp_reco_delay_min,
-                                        reco_delay_max=self._tcp_reco_delay_max)
+                                        reco_delay_max=self._tcp_reco_delay_max,
+                                        table_version=self._table_version)
         else:
             raise InitialisationError('unknown mode ({})'.format(self._mode))
         self._global_mode = const.GlobalMode.COLD
@@ -279,6 +284,16 @@ class Koolnova:
         self._sys_state = const.SysState.SYS_STATE_OFF
         self._engines = []
         self._areas = []
+
+    @property
+    def table_version(self) -> str:
+        """Return the normalized Modbus table version."""
+        return self._table_version
+
+    @property
+    def supports_efficiency(self) -> bool:
+        """Return whether this table version supports scalar efficiency."""
+        return self._client.supports_efficiency
 
     def _area_defined(self, 
                         id_search:int = 0,
