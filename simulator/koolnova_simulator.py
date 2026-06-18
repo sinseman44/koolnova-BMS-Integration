@@ -3,16 +3,20 @@
 # @Brief Pymodbus Koolnova Modbus RTU simulator.
 #        A simulator datastore with json interface.
 
-import os,sys
 import argparse
 import asyncio
 import logging
 import json
+from pathlib import Path
 
 from pymodbus import pymodbus_apply_logging_config
 from pymodbus.datastore import ModbusServerContext, ModbusSimulatorContext
-from pymodbus.device import ModbusDeviceIdentification
 from pymodbus.server import StartAsyncSerialServer
+
+try:
+    from pymodbus.pdu.device import ModbusDeviceIdentification
+except ImportError:
+    from pymodbus.device import ModbusDeviceIdentification
 
 _logger = logging.getLogger(__file__)
 
@@ -25,20 +29,38 @@ def get_commandline() -> argparse.Namespace:
                         help="set log level, default is info",
                         default="info",
                         type=str)
-    parser.add_argument("--config", help="JSON Config path file", type=str, default="") 
+    parser.add_argument("--config", help="JSON Config path file", type=str, default="")
+    parser.add_argument("--profile",
+                        choices=["v1", "v2"],
+                        help="built-in Koolnova Modbus table profile, default is v1",
+                        default="v1",
+                        type=str)
     args = parser.parse_args()
     return args
+
+
+def get_config_path(args: argparse.Namespace) -> Path:
+    """Return the simulator config path."""
+    if args.config:
+        return Path(args.config)
+
+    config_name = "server-v2.json" if args.profile == "v2" else "server.json"
+    return Path(__file__).resolve().parent / config_name
 
 
 def setup_simulator() -> argparse.Namespace:
     """ Run server setup.
     """
     args = get_commandline()
+
     pymodbus_apply_logging_config(args.log.upper())
     _logger.setLevel(args.log.upper())
 
+    config_path = get_config_path(args)
+    _logger.info("Using simulator config: %s", config_path)
+
     # open and read json file
-    with open(args.config, 'r') as f:
+    with config_path.open('r') as f:
         setup = json.load(f)
 
     try:
@@ -48,8 +70,11 @@ def setup_simulator() -> argparse.Namespace:
         _logger.error("error with json file: {}".format(e))
         return None
 
-    # Master collection of slave contexts
-    args.context = ModbusServerContext(slaves=context, single=True)
+    # Master collection of device contexts.
+    try:
+        args.context = ModbusServerContext(devices=context, single=True)
+    except TypeError:
+        args.context = ModbusServerContext(slaves=context, single=True)
     args.identity = ModbusDeviceIdentification(info_name=setup['server_list']['server']['identity'])
     args.port = setup['server_list']['server']['port']
     args.baudrate = setup['server_list']['server']['baudrate']
