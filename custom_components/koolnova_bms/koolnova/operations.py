@@ -157,6 +157,14 @@ class Operations:
         ''' get modbus client status '''
         return self._client.connected
 
+    @staticmethod
+    def __validated_int(name:str, value:int, minimum:int, maximum:int) -> int:
+        ''' Validate an integer value against documented Modbus bounds '''
+        value = int(value)
+        if value < minimum or value > maximum:
+            raise ValueError("{} must be between {} and {}".format(name, minimum, maximum))
+        return value
+
     @property
     def supports_efficiency(self) -> bool:
         """Return whether the selected register map supports efficiency."""
@@ -243,6 +251,16 @@ class Operations:
             "k6": bool(lsb & 0x01),
         }
 
+    async def async_set_v2_parameters(self,
+                                        raw:int,
+                                        ) -> bool:
+        ''' write 40074: system parameters '''
+        raw = Operations.__validated_int("raw", raw, 0x0000, 0xFFFF)
+        ret = await self.__async_write_register(reg = const.REG_V2_PARAMETERS, val = int(raw))
+        if not ret:
+            _LOGGER.error('Error writing v2 parameters')
+        return ret
+
     async def async_v2_active_modes(self) -> (bool, dict):
         ''' read 40075: active modes '''
         reg, ret = await self.__async_read_register(const.REG_V2_ACTIVE_MODES)
@@ -266,6 +284,18 @@ class Operations:
             "ventilation": bool(lsb & 0x01),
         }
 
+    async def async_set_v2_active_modes(self,
+                                        raw:int,
+                                        ) -> bool:
+        ''' write 40075: active modes '''
+        raw = Operations.__validated_int("raw", raw, 0x0000, 0xFFFF)
+        if raw & 0x0080:
+            raise ValueError("raw bit 7 of LSB must be 0")
+        ret = await self.__async_write_register(reg = const.REG_V2_ACTIVE_MODES, val = int(raw))
+        if not ret:
+            _LOGGER.error('Error writing v2 active modes')
+        return ret
+
     async def async_v2_temperature_limits(self) -> (bool, dict):
         ''' read 40076: temperature limits '''
         reg, ret = await self.__async_read_register(const.REG_V2_TEMPERATURE_LIMITS)
@@ -283,6 +313,19 @@ class Operations:
             "max_heating_limit": msb,
             "min_cooling_limit": lsb,
         }
+
+    async def async_set_v2_temperature_limits(self,
+                                                max_heating_limit:int,
+                                                min_cooling_limit:int,
+                                                ) -> bool:
+        ''' write 40076: temperature limits '''
+        max_heating_limit = Operations.__validated_int("max_heating_limit", max_heating_limit, 0x00, 0xFF)
+        min_cooling_limit = Operations.__validated_int("min_cooling_limit", min_cooling_limit, 0x00, 0xFF)
+        val = (max_heating_limit << 8) | min_cooling_limit
+        ret = await self.__async_write_register(reg = const.REG_V2_TEMPERATURE_LIMITS, val = val)
+        if not ret:
+            _LOGGER.error('Error writing v2 temperature limits')
+        return ret
 
     async def async_v2_auto_changeover_humidity(self) -> (bool, dict):
         ''' read 40077: automatic changeover modes and humidity control '''
@@ -313,6 +356,37 @@ class Operations:
             "humidity_relay_threshold": lsb,
         }
 
+    async def async_set_v2_auto_changeover_humidity(self,
+                                                    mode_when_water_above_threshold:int,
+                                                    mode_when_water_below_threshold:int,
+                                                    humidity_relay_threshold:int,
+                                                    ) -> bool:
+        ''' write 40077: automatic changeover modes and humidity control '''
+        mode_when_water_above_threshold = Operations.__validated_int(
+            "mode_when_water_above_threshold",
+            mode_when_water_above_threshold,
+            0x00,
+            0x0F,
+        )
+        mode_when_water_below_threshold = Operations.__validated_int(
+            "mode_when_water_below_threshold",
+            mode_when_water_below_threshold,
+            0x00,
+            0x0F,
+        )
+        humidity_relay_threshold = Operations.__validated_int(
+            "humidity_relay_threshold",
+            humidity_relay_threshold,
+            0x00,
+            0xFF,
+        )
+        msb = ((mode_when_water_above_threshold << 4) | mode_when_water_below_threshold)
+        val = (msb << 8) | humidity_relay_threshold
+        ret = await self.__async_write_register(reg = const.REG_V2_AUTO_CHANGEOVER_HUMIDITY, val = val)
+        if not ret:
+            _LOGGER.error('Error writing v2 auto changeover humidity')
+        return ret
+
     async def async_v2_system_time(self) -> (bool, dict):
         ''' read 40078: system time '''
         reg, ret = await self.__async_read_register(const.REG_V2_SYSTEM_TIME)
@@ -341,6 +415,21 @@ class Operations:
             "minute": minute,
         }
 
+    async def async_set_v2_system_time(self,
+                                        day:int,
+                                        hour:int,
+                                        minute:int,
+                                        ) -> bool:
+        ''' write 40078: system time '''
+        day = Operations.__validated_int("day", day, 1, 7)
+        hour = Operations.__validated_int("hour", hour, 0, 23)
+        minute = Operations.__validated_int("minute", minute, 0, 59)
+        val = (day << 11) | (hour << 6) | minute
+        ret = await self.__async_write_register(reg = const.REG_V2_SYSTEM_TIME, val = val)
+        if not ret:
+            _LOGGER.error('Error writing v2 system time')
+        return ret
+
     async def async_v2_external_inputs(self) -> (bool, dict):
         ''' read 40079: external inputs '''
         reg, ret = await self.__async_read_register(const.REG_V2_EXTERNAL_INPUTS)
@@ -357,6 +446,19 @@ class Operations:
             "din2_function": (lsb >> 4) & 0x0F,
             "din1_function": lsb & 0x0F,
         }
+
+    async def async_set_v2_external_inputs(self,
+                                            din2_function:int,
+                                            din1_function:int,
+                                            ) -> bool:
+        ''' write 40079: external inputs '''
+        din2_function = Operations.__validated_int("din2_function", din2_function, 0x00, 0x0F)
+        din1_function = Operations.__validated_int("din1_function", din1_function, 0x00, 0x0F)
+        val = ((din2_function << 4) | din1_function)
+        ret = await self.__async_write_register(reg = const.REG_V2_EXTERNAL_INPUTS, val = val)
+        if not ret:
+            _LOGGER.error('Error writing v2 external inputs')
+        return ret
 
     async def async_v2_opening_angle_z1_z8(self) -> (bool, dict):
         ''' read 40080: opening angle for zones Z1 to Z8 '''
@@ -384,6 +486,19 @@ class Operations:
             "zone_id": zone_index + 1,
         }
 
+    async def async_set_v2_opening_angle_z1_z8(self,
+                                                angle_code:int,
+                                                zone_index:int,
+                                                ) -> bool:
+        ''' write 40080: opening angle for zones Z1 to Z8 '''
+        angle_code = Operations.__validated_int("angle_code", angle_code, 0x00, 0x03)
+        zone_index = Operations.__validated_int("zone_index", zone_index, 0, 7)
+        val = ((angle_code << 4) | zone_index)
+        ret = await self.__async_write_register(reg = const.REG_V2_OPENING_ANGLE_Z1_Z8, val = val)
+        if not ret:
+            _LOGGER.error('Error writing v2 opening angle Z1 to Z8')
+        return ret
+
     async def async_v2_opening_angle_z9_z16(self) -> (bool, dict):
         ''' read 40081: opening angle for zones Z9 to Z16 '''
         reg, ret = await self.__async_read_register(const.REG_V2_OPENING_ANGLE_Z9_Z16)
@@ -409,6 +524,19 @@ class Operations:
             "zone_index": zone_index,
             "zone_id": zone_index + 1,
         }
+
+    async def async_set_v2_opening_angle_z9_z16(self,
+                                                angle_code:int,
+                                                zone_index:int,
+                                                ) -> bool:
+        ''' write 40081: opening angle for zones Z9 to Z16 '''
+        angle_code = Operations.__validated_int("angle_code", angle_code, 0x00, 0x03)
+        zone_index = Operations.__validated_int("zone_index", zone_index, 8, 15)
+        val = ((angle_code << 4) | zone_index)
+        ret = await self.__async_write_register(reg = const.REG_V2_OPENING_ANGLE_Z9_Z16, val = val)
+        if not ret:
+            _LOGGER.error('Error writing v2 opening angle Z9 to Z16')
+        return ret
 
     async def async_v2_floor_water_temperature(self) -> (bool, float):
         ''' read 40082: radiant floor water NTC temperature '''
@@ -467,6 +595,16 @@ class Operations:
             },
         }
 
+    async def async_set_v2_valve_mask(self,
+                                        raw:int,
+                                        ) -> bool:
+        ''' write 40085: valve mask '''
+        raw = Operations.__validated_int("raw", raw, 0x0000, 0xFFFF)
+        ret = await self.__async_write_register(reg = const.REG_V2_VALVE_MASK, val = raw)
+        if not ret:
+            _LOGGER.error('Error writing v2 valve mask')
+        return ret
+
     async def async_v2_pump_delay_valve_offset(self) -> (bool, dict):
         ''' read 40086: pump delay and valve offset '''
         reg, ret = await self.__async_read_register(const.REG_V2_PUMP_DELAY_VALVE_OFFSET)
@@ -484,6 +622,29 @@ class Operations:
             "pump_delay_seconds": lsb,
             "pump_delay_seconds_valid": 60 <= lsb <= 255,
         }
+
+    async def async_set_v2_pump_delay_valve_offset(self,
+                                                    valve_origin_offset:int,
+                                                    pump_delay_seconds:int,
+                                                    ) -> bool:
+        ''' write 40086: pump delay and valve offset '''
+        valve_origin_offset = Operations.__validated_int(
+            "valve_origin_offset",
+            valve_origin_offset,
+            0x00,
+            0x07,
+        )
+        pump_delay_seconds = Operations.__validated_int(
+            "pump_delay_seconds",
+            pump_delay_seconds,
+            60,
+            255,
+        )
+        val = (valve_origin_offset << 8) | pump_delay_seconds
+        ret = await self.__async_write_register(reg = const.REG_V2_PUMP_DELAY_VALVE_OFFSET, val = val)
+        if not ret:
+            _LOGGER.error('Error writing v2 pump delay valve offset')
+        return ret
 
     async def async_v2_immersion_heater(self) -> (bool, dict):
         ''' read 40087: immersion heater '''
@@ -505,6 +666,29 @@ class Operations:
             "activation_temperature_celsius": activation_temperature,
         }
 
+    async def async_set_v2_immersion_heater(self,
+                                            activation_delay_minutes:int,
+                                            activation_temperature_celsius:int,
+                                            ) -> bool:
+        ''' write 40087: immersion heater '''
+        activation_delay_minutes = Operations.__validated_int(
+            "activation_delay_minutes",
+            activation_delay_minutes,
+            0,
+            255,
+        )
+        activation_temperature_celsius = Operations.__validated_int(
+            "activation_temperature_celsius",
+            activation_temperature_celsius,
+            -128,
+            127,
+        )
+        val = (activation_delay_minutes << 8) | (activation_temperature_celsius & 0xFF)
+        ret = await self.__async_write_register(reg = const.REG_V2_IMMERSION_HEATER, val = val)
+        if not ret:
+            _LOGGER.error('Error writing v2 immersion heater')
+        return ret
+
     async def async_v2_thermostat_block(self) -> (bool, dict):
         ''' read 40088: thermostat block '''
         reg, ret = await self.__async_read_register(const.REG_V2_THERMOSTAT_BLOCK)
@@ -525,6 +709,16 @@ class Operations:
             "total_block": lsb == 0x0F,
         }
 
+    async def async_set_v2_thermostat_block(self,
+                                            block_level:int,
+                                            ) -> bool:
+        ''' write 40088: thermostat block '''
+        block_level = Operations.__validated_int("block_level", block_level, 0x00, 0x0F)
+        ret = await self.__async_write_register(reg = const.REG_V2_THERMOSTAT_BLOCK, val = block_level)
+        if not ret:
+            _LOGGER.error('Error writing v2 thermostat block')
+        return ret
+
     async def async_v2_auto_mode(self) -> (bool, dict):
         ''' read 40089: automatic mode '''
         reg, ret = await self.__async_read_register(const.REG_V2_AUTO_MODE)
@@ -541,6 +735,29 @@ class Operations:
             "cooling_water_threshold_celsius": msb,
             "heating_water_threshold_celsius": lsb,
         }
+
+    async def async_set_v2_auto_mode(self,
+                                    cooling_water_threshold_celsius:int,
+                                    heating_water_threshold_celsius:int,
+                                    ) -> bool:
+        ''' write 40089: automatic mode '''
+        cooling_water_threshold_celsius = Operations.__validated_int(
+            "cooling_water_threshold_celsius",
+            cooling_water_threshold_celsius,
+            0x00,
+            0xFF,
+        )
+        heating_water_threshold_celsius = Operations.__validated_int(
+            "heating_water_threshold_celsius",
+            heating_water_threshold_celsius,
+            0x00,
+            0xFF,
+        )
+        val = (cooling_water_threshold_celsius << 8) | heating_water_threshold_celsius
+        ret = await self.__async_write_register(reg = const.REG_V2_AUTO_MODE, val = val)
+        if not ret:
+            _LOGGER.error('Error writing v2 auto mode')
+        return ret
 
     async def async_v2_mixing_valve_ambient_temperatures(self) -> (bool, dict):
         ''' read 40090: ambient temperatures for mixing valve control '''
@@ -564,6 +781,32 @@ class Operations:
             "lower_ambient_temperature_valid": -20 <= lower_ambient_temperature <= 30,
         }
 
+    async def async_set_v2_mixing_valve_ambient_temperatures(self,
+                                                            upper_ambient_temperature_celsius:int,
+                                                            lower_ambient_temperature_celsius:int,
+                                                            ) -> bool:
+        ''' write 40090: ambient temperatures for mixing valve control '''
+        upper_ambient_temperature_celsius = Operations.__validated_int(
+            "upper_ambient_temperature_celsius",
+            upper_ambient_temperature_celsius,
+            25,
+            45,
+        )
+        lower_ambient_temperature_celsius = Operations.__validated_int(
+            "lower_ambient_temperature_celsius",
+            lower_ambient_temperature_celsius,
+            -20,
+            30,
+        )
+        val = (
+            (upper_ambient_temperature_celsius << 8)
+            | (lower_ambient_temperature_celsius & 0xFF)
+        )
+        ret = await self.__async_write_register(reg = const.REG_V2_MIXING_VALVE_AMBIENT_TEMPERATURES, val = val)
+        if not ret:
+            _LOGGER.error('Error writing v2 mixing valve ambient temperatures')
+        return ret
+
     async def async_v2_mixing_valve_water_temperatures(self) -> (bool, dict):
         ''' read 40091: water temperatures for mixing valve control '''
         reg, ret = await self.__async_read_register(const.REG_V2_MIXING_VALVE_WATER_TEMPERATURES)
@@ -582,6 +825,29 @@ class Operations:
             "lower_water_temperature_celsius": lsb,
             "lower_water_temperature_valid": 25 <= lsb <= 45,
         }
+
+    async def async_set_v2_mixing_valve_water_temperatures(self,
+                                                            upper_water_temperature_celsius:int,
+                                                            lower_water_temperature_celsius:int,
+                                                            ) -> bool:
+        ''' write 40091: water temperatures for mixing valve control '''
+        upper_water_temperature_celsius = Operations.__validated_int(
+            "upper_water_temperature_celsius",
+            upper_water_temperature_celsius,
+            25,
+            45,
+        )
+        lower_water_temperature_celsius = Operations.__validated_int(
+            "lower_water_temperature_celsius",
+            lower_water_temperature_celsius,
+            25,
+            45,
+        )
+        val = (upper_water_temperature_celsius << 8) | lower_water_temperature_celsius
+        ret = await self.__async_write_register(reg = const.REG_V2_MIXING_VALVE_WATER_TEMPERATURES, val = val)
+        if not ret:
+            _LOGGER.error('Error writing v2 mixing valve water temperatures')
+        return ret
 
     async def async_v2_mixing_valve_mode_info(self) -> (bool, dict):
         ''' read 40092: mixing valve mode information '''
@@ -614,6 +880,38 @@ class Operations:
             "heating_supply_temperature_celsius": heating_supply_temperature,
             "heating_supply_temperature_valid": 25 <= heating_supply_temperature <= 45,
         }
+
+    async def async_set_v2_mixing_valve_mode_info(self,
+                                                    safety_factor_code:int,
+                                                    mode:int,
+                                                    cooling_supply_temperature_celsius:int,
+                                                    heating_supply_temperature_celsius:int,
+                                                    ) -> bool:
+        ''' write 40092: mixing valve mode information '''
+        safety_factor_code = Operations.__validated_int("safety_factor_code", safety_factor_code, 0x00, 0x02)
+        mode = Operations.__validated_int("mode", mode, 0x00, 0x03)
+        cooling_supply_temperature_celsius = Operations.__validated_int(
+            "cooling_supply_temperature_celsius",
+            cooling_supply_temperature_celsius,
+            10,
+            22,
+        )
+        heating_supply_temperature_celsius = Operations.__validated_int(
+            "heating_supply_temperature_celsius",
+            heating_supply_temperature_celsius,
+            25,
+            45,
+        )
+        val = (
+            (safety_factor_code << 14)
+            | (mode << 12)
+            | (cooling_supply_temperature_celsius << 6)
+            | heating_supply_temperature_celsius
+        )
+        ret = await self.__async_write_register(reg = const.REG_V2_MIXING_VALVE_MODE_INFO, val = val)
+        if not ret:
+            _LOGGER.error('Error writing v2 mixing valve mode info')
+        return ret
 
     async def async_v2_reserved_40107(self) -> (bool, int):
         ''' read 40107: reserved register '''
