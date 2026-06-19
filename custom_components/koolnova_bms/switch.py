@@ -48,7 +48,28 @@ async def async_setup_entry(hass: HomeAssistant,
         SystemStateSwitch(coordinator, device),
         DebugStateSwitch(device),
     ]
+    if device.table_version == "v2":
+        entities.extend(_build_v2_switch_entities(coordinator, device))
+    else:
+        _LOGGER.debug("Skip Koolnova v2 switches for table version %s", device.table_version)
     async_add_entities(entities)
+
+def _build_v2_switch_entities(coordinator: KoolnovaCoordinator,
+                                device: Koolnova,
+                                ) -> list[SwitchEntity]:
+    """Build switch entities that only exist for the Koolnova v2 Modbus table."""
+    entities = []
+    entities.append(V2ActiveModeSwitch(coordinator, device, "ventilation", "V2 ventilation mode enabled"))
+    entities.append(V2ActiveModeSwitch(coordinator, device, "cooling", "V2 cooling mode enabled"))
+    entities.append(V2ActiveModeSwitch(coordinator, device, "heating", "V2 heating mode enabled"))
+    entities.append(V2ActiveModeSwitch(coordinator, device, "dehumidification", "V2 dehumidification mode enabled"))
+    entities.append(V2ActiveModeSwitch(coordinator, device, "radiant_floor", "V2 radiant floor mode enabled"))
+    entities.append(V2ActiveModeSwitch(coordinator, device, "radiant_floor_cooling", "V2 radiant floor cooling mode enabled"))
+    entities.append(V2ActiveModeSwitch(coordinator, device, "radiant_floor_heating", "V2 radiant floor heating mode enabled"))
+
+    for zone_index in range(16):
+        entities.append(V2ZonePumpSwitch(coordinator, device, zone_index))
+    return entities
 
 class SystemStateSwitch(CoordinatorEntity, SwitchEntity):
     """Select component to set system state """
@@ -107,6 +128,102 @@ class SystemStateSwitch(CoordinatorEntity, SwitchEntity):
     def icon(self) -> str | None:
         """Icon of the entity."""
         return "mdi:power"
+
+class V2ActiveModeSwitch(CoordinatorEntity, SwitchEntity):
+    """Switch component to enable or hide a Koolnova v2 global mode."""
+
+    _attr_has_entity_name: bool = True
+    _attr_device_class: SwitchDeviceClass = SwitchDeviceClass.SWITCH
+    _attr_entity_category: EntityCategory = EntityCategory.CONFIG
+
+    def __init__(self,
+                    coordinator: KoolnovaCoordinator,
+                    device: Koolnova,
+                    field:str,
+                    name:str,
+                    ) -> None:
+        """Class constructor."""
+        super().__init__(coordinator)
+        self._device = device
+        self._field = field
+        self._attr_name = f"{self._device.name} {name}"
+        self._attr_device_info = self._device.device_info
+        self._attr_unique_id = f"{DOMAIN}-{self._device.name}-40075-{self._field}-switch"
+
+    def _register_value(self) -> dict:
+        """Return the decoded active modes register."""
+        return self.coordinator.data.get("v2_registers", {}).get(
+            "40075_active_modes",
+            self._device.v2_registers.get("40075_active_modes", {}),
+        )
+
+    async def async_turn_on(self, **kwargs):
+        """Turn the entity on."""
+        await self._device.async_set_v2_active_modes(**{self._field: True})
+        await self.coordinator.async_request_refresh()
+
+    async def async_turn_off(self, **kwargs):
+        """Turn the entity off."""
+        await self._device.async_set_v2_active_modes(**{self._field: False})
+        await self.coordinator.async_request_refresh()
+
+    @property
+    def is_on(self) -> bool | None:
+        """Return True if entity is on."""
+        return bool(self._register_value().get(self._field))
+
+    @property
+    def icon(self) -> str | None:
+        """Icon of the entity."""
+        return "mdi:tune-variant"
+
+class V2ZonePumpSwitch(CoordinatorEntity, SwitchEntity):
+    """Switch component for one Koolnova v2 zone pump mask bit."""
+
+    _attr_has_entity_name: bool = True
+    _attr_device_class: SwitchDeviceClass = SwitchDeviceClass.SWITCH
+    _attr_entity_category: EntityCategory = EntityCategory.CONFIG
+
+    def __init__(self,
+                    coordinator: KoolnovaCoordinator,
+                    device: Koolnova,
+                    zone_index:int,
+                    ) -> None:
+        """Class constructor."""
+        super().__init__(coordinator)
+        self._device = device
+        self._zone_index = zone_index
+        self._attr_name = f"{self._device.name} V2 zone {self._zone_index} pump enabled"
+        self._attr_device_info = self._device.device_info
+        self._attr_unique_id = f"{DOMAIN}-{self._device.name}-40085-zone-{self._zone_index}-pump-switch"
+
+    def _register_value(self) -> dict:
+        """Return the decoded valve mask register."""
+        return self.coordinator.data.get("v2_registers", {}).get(
+            "40085_valve_mask",
+            self._device.v2_registers.get("40085_valve_mask", {}),
+        )
+
+    async def async_turn_on(self, **kwargs):
+        """Turn the entity on."""
+        await self._device.async_set_v2_zone_pump_enabled(self._zone_index, True)
+        await self.coordinator.async_request_refresh()
+
+    async def async_turn_off(self, **kwargs):
+        """Turn the entity off."""
+        await self._device.async_set_v2_zone_pump_enabled(self._zone_index, False)
+        await self.coordinator.async_request_refresh()
+
+    @property
+    def is_on(self) -> bool | None:
+        """Return True if entity is on."""
+        zone_pump_enabled = self._register_value().get("zone_pump_enabled", {})
+        return bool(zone_pump_enabled.get(self._zone_index))
+
+    @property
+    def icon(self) -> str | None:
+        """Icon of the entity."""
+        return "mdi:valve"
 
 class DebugStateSwitch(SwitchEntity):
     """Select component to set system state """
