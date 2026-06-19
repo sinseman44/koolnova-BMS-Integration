@@ -14,56 +14,54 @@ from .coordinator import KoolnovaCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
+def _build_device_from_entry(entry: ConfigEntry) -> Koolnova:
+    """Build a Koolnova runtime device from a config entry."""
+    debug: bool = entry.data['Debug']
+    timeout: int = entry.data['Timeout']
+    name: str = entry.data['Name']
+    table_version: str | None = entry.data.get("Table_version")
+    mode: str = entry.data['Mode']
+
+    if mode == 'Modbus RTU':
+        return Koolnova(mode=mode,
+                        name=name,
+                        timeout=timeout,
+                        debug=debug,
+                        port=entry.data['Device'],
+                        addr=entry.data['Address'],
+                        baudrate=entry.data['Baudrate'],
+                        parity=entry.data['Parity'][0],
+                        bytesize=entry.data['Sizebyte'],
+                        stopbits=entry.data['Stopbits'],
+                        table_version=table_version)
+    if mode == 'Modbus TCP':
+        return Koolnova(mode=mode,
+                        name=name,
+                        timeout=timeout,
+                        debug=debug,
+                        port=entry.data['Port'],
+                        addr=entry.data['Address'],
+                        modbus=entry.data['Modbus'],
+                        retries=entry.data['Retries'],
+                        reco_delay_min=entry.data['Reconnect_delay_min'],
+                        reco_delay_max=entry.data['Reconnect_delay_max'],
+                        table_version=table_version)
+
+    raise ConfigEntryNotReady(f"Unsupported Koolnova Modbus mode: {mode}")
+
+def _disconnect_device(device: Koolnova | None) -> None:
+    """Disconnect a Koolnova device if it has an active Modbus client."""
+    if device and device.connected():
+        device.disconnect()
+
 async def async_setup_entry(hass: HomeAssistant, 
                             entry: ConfigEntry) -> bool: # pylint: disable=unused-argument
     """ Creation des entités à partir d'une configEntry """
 
     hass.data.setdefault(DOMAIN, {})
-    device:Koolnova = None
-    debug:bool = entry.data['Debug']
-    timeout:int = entry.data['Timeout']
-    name: str = entry.data['Name']
-    table_version: str | None = entry.data.get("Table_version")
-    if entry.data['Mode'] == 'Modbus RTU':
-        port: str = entry.data['Device']
-        addr: int = entry.data['Address']
-        baudrate: int = entry.data['Baudrate']
-        parity: str = entry.data['Parity'][0]
-        bytesize: int = entry.data['Sizebyte']
-        stopbits: int = entry.data['Stopbits']
-        device = Koolnova(mode=entry.data['Mode'],
-                            name=name,
-                            timeout=timeout,
-                            debug=debug,
-                            port=port,
-                            addr=addr,
-                            baudrate=baudrate,
-                            parity=parity,
-                            bytesize=bytesize,
-                            stopbits=stopbits,
-                            table_version=table_version)
-    elif entry.data['Mode'] == 'Modbus TCP':
-        port:int = entry.data['Port']
-        addr:str = entry.data['Address']
-        modbus:int = entry.data['Modbus']
-        retries:int = entry.data['Retries']
-        reco_delay_min:float = entry.data['Reconnect_delay_min']
-        reco_delay_max:float = entry.data['Reconnect_delay_max']
-        device = Koolnova(mode=entry.data['Mode'],
-                            name=name,
-                            timeout=timeout,
-                            debug=debug,
-                            port=port,
-                            addr=addr,
-                            modbus=modbus,
-                            retries=retries,
-                            reco_delay_min=reco_delay_min,
-                            reco_delay_max=reco_delay_max,
-                            table_version=table_version)
-    else:
-        _LOGGER.error("Integration initialisation failed (Mode unknown)")
-        return False
+    device: Koolnova | None = None
     try:
+        device = _build_device_from_entry(entry)
         # connect to modbus client
         ret = await device.async_connect()
         if not ret:
@@ -82,23 +80,28 @@ async def async_setup_entry(hass: HomeAssistant,
                     f"Unable to register Koolnova area {area['Area_id']}"
                 )
         coordinator = KoolnovaCoordinator(hass, device)
+        # Ensure coordinator.data is populated before platform entities are created.
+        await coordinator.async_config_entry_first_refresh()
         hass.data[DOMAIN][entry.entry_id] = {
             "device": device,
             "coordinator": coordinator,
         }
     except ConfigEntryNotReady:
-        if device and device.connected():
-            device.disconnect()
+        _disconnect_device(device)
         raise
     except Exception as e:
-        if device and device.connected():
-            device.disconnect()
+        _disconnect_device(device)
         raise ConfigEntryNotReady(
             f"Unexpected error while setting up Koolnova integration: {e}"
         ) from e
 
     # Propagation du configEntry à toutes les plateformes déclarées dans notre intégration
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    try:
+        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    except Exception:
+        hass.data[DOMAIN].pop(entry.entry_id, None)
+        _disconnect_device(device)
+        raise
 
     return True
 
@@ -111,9 +114,7 @@ async def async_unload_entry(hass: HomeAssistant,
     if unload_ok:
         runtime_data = hass.data[DOMAIN].pop(entry.entry_id, None)
         if runtime_data:
-            device = runtime_data["device"]
-            if device.connected():
-                device.disconnect()
+            _disconnect_device(runtime_data["device"])
     _LOGGER.debug("Unload entries: {}".format(unload_ok))
     return unload_ok
 
@@ -124,6 +125,4 @@ async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
         runtime_data = hass.data[DOMAIN].pop(entry.entry_id, None)
         if not runtime_data:
             return
-        device = runtime_data["device"]
-        if device.connected():
-            device.disconnect()
+        _disconnect_device(runtime_data["device"])
