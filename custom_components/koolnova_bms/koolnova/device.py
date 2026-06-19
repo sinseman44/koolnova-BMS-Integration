@@ -407,6 +407,62 @@ class Koolnova:
         self._v2_registers = values
         return True
 
+    async def _async_write_v2_register(self,
+                                        label:str,
+                                        write_register,
+                                        read_register,
+                                        *args,
+                                        ):
+        """Write a Koolnova 2.0 register and refresh only its snapshot value."""
+        if self._table_version != const.TABLE_VERSION_V2:
+            raise UpdateValueError("Koolnova v2 register {} is not supported by this Modbus table".format(label))
+
+        try:
+            ret = await write_register(*args)
+        except ValueError as err:
+            _LOGGER.error("[V2] Invalid value for register %s: %s", label, err)
+            raise UpdateValueError(str(err)) from err
+        if not ret:
+            _LOGGER.error("[V2] Error writing register %s", label)
+            raise UpdateValueError("Error writing Koolnova v2 register {}".format(label))
+
+        ret, value = await read_register()
+        if not ret:
+            _LOGGER.error("[V2] Error refreshing register %s after write", label)
+            raise UpdateValueError("Error refreshing Koolnova v2 register {} after write".format(label))
+        self._v2_registers[label] = value
+        return value
+
+    async def _async_v2_register_raw(self,
+                                        label:str,
+                                        read_register,
+                                        ) -> int:
+        """Return the current raw value for a Koolnova 2.0 register snapshot."""
+        if self._table_version != const.TABLE_VERSION_V2:
+            raise UpdateValueError("Koolnova v2 register {} is not supported by this Modbus table".format(label))
+
+        value = self._v2_registers.get(label)
+        if value is None:
+            ret, value = await read_register()
+            if not ret:
+                _LOGGER.error("[V2] Error reading register %s before write", label)
+                raise UpdateValueError("Error reading Koolnova v2 register {} before write".format(label))
+            self._v2_registers[label] = value
+
+        if isinstance(value, dict):
+            return int(value["raw"])
+        return int(value)
+
+    @staticmethod
+    def _replace_bit(raw:int,
+                        bit:int,
+                        value:bool,
+                        ) -> int:
+        """Return raw with one bit replaced by the requested boolean value."""
+        if value:
+            return raw | (1 << bit)
+        return raw & ~(1 << bit)
+
     def _area_defined(self, 
                         id_search:int = 0,
                     ) -> (bool, int):
@@ -715,6 +771,295 @@ class Koolnova:
             _LOGGER.error("[EFF] Error writing {} to modbus".format(val))
             raise UpdateValueError('Error writing to modbus updated value')    
         self._efficiency = val
+
+    async def async_set_v2_parameters(self,
+                                        hum:bool | None = None,
+                                        af:bool | None = None,
+                                        stop:bool | None = None,
+                                        eco:bool | None = None,
+                                        efi:int | None = None,
+                                        din2:bool | None = None,
+                                        din1:bool | None = None,
+                                        aux1:bool | None = None,
+                                        heating:bool | None = None,
+                                        pump:bool | None = None,
+                                        k5:bool | None = None,
+                                        k6:bool | None = None,
+                                        ) -> dict:
+        ''' Set Koolnova v2 system parameters '''
+        raw = await self._async_v2_register_raw(
+            "40074_parameters",
+            self._client.async_v2_parameters,
+        )
+        for bit, value in (
+            (15, hum),
+            (14, af),
+            (12, stop),
+            (11, eco),
+            (6, din2),
+            (5, din1),
+            (4, aux1),
+            (3, heating),
+            (2, pump),
+            (1, k5),
+            (0, k6),
+        ):
+            if value is not None:
+                raw = Koolnova._replace_bit(raw, bit, bool(value))
+        if efi is not None:
+            efi = int(efi)
+            if efi < 0 or efi > 7:
+                raise UpdateValueError("efi must be between 0 and 7")
+            raw = (raw & ~0x0700) | (efi << 8)
+        return await self._async_write_v2_register(
+            "40074_parameters",
+            self._client.async_set_v2_parameters,
+            self._client.async_v2_parameters,
+            raw,
+        )
+
+    async def async_set_v2_active_modes(self,
+                                        radiant_floor_heating:bool | None = None,
+                                        radiant_floor_cooling:bool | None = None,
+                                        radiant_floor:bool | None = None,
+                                        dehumidification:bool | None = None,
+                                        heating:bool | None = None,
+                                        cooling:bool | None = None,
+                                        ventilation:bool | None = None,
+                                        ) -> dict:
+        ''' Set Koolnova v2 active modes '''
+        raw = await self._async_v2_register_raw(
+            "40075_active_modes",
+            self._client.async_v2_active_modes,
+        )
+        raw &= ~0x0080
+        for bit, value in (
+            (6, radiant_floor_heating),
+            (5, radiant_floor_cooling),
+            (4, radiant_floor),
+            (3, dehumidification),
+            (2, heating),
+            (1, cooling),
+            (0, ventilation),
+        ):
+            if value is not None:
+                raw = Koolnova._replace_bit(raw, bit, bool(value))
+        return await self._async_write_v2_register(
+            "40075_active_modes",
+            self._client.async_set_v2_active_modes,
+            self._client.async_v2_active_modes,
+            raw,
+        )
+
+    async def async_set_v2_temperature_limits(self,
+                                                max_heating_limit:int,
+                                                min_cooling_limit:int,
+                                                ) -> dict:
+        ''' Set Koolnova v2 temperature limits '''
+        return await self._async_write_v2_register(
+            "40076_temperature_limits",
+            self._client.async_set_v2_temperature_limits,
+            self._client.async_v2_temperature_limits,
+            max_heating_limit,
+            min_cooling_limit,
+        )
+
+    async def async_set_v2_auto_changeover_humidity(self,
+                                                    mode_when_water_above_threshold:int,
+                                                    mode_when_water_below_threshold:int,
+                                                    humidity_relay_threshold:int,
+                                                    ) -> dict:
+        ''' Set Koolnova v2 automatic changeover modes and humidity control '''
+        return await self._async_write_v2_register(
+            "40077_auto_changeover_humidity",
+            self._client.async_set_v2_auto_changeover_humidity,
+            self._client.async_v2_auto_changeover_humidity,
+            mode_when_water_above_threshold,
+            mode_when_water_below_threshold,
+            humidity_relay_threshold,
+        )
+
+    async def async_set_v2_system_time(self,
+                                        day:int,
+                                        hour:int,
+                                        minute:int,
+                                        ) -> dict:
+        ''' Set Koolnova v2 system time '''
+        return await self._async_write_v2_register(
+            "40078_system_time",
+            self._client.async_set_v2_system_time,
+            self._client.async_v2_system_time,
+            day,
+            hour,
+            minute,
+        )
+
+    async def async_set_v2_external_inputs(self,
+                                            din2_function:int,
+                                            din1_function:int,
+                                            ) -> dict:
+        ''' Set Koolnova v2 external input functions '''
+        return await self._async_write_v2_register(
+            "40079_external_inputs",
+            self._client.async_set_v2_external_inputs,
+            self._client.async_v2_external_inputs,
+            din2_function,
+            din1_function,
+        )
+
+    async def async_set_v2_opening_angle_z1_z8(self,
+                                                angle_code:int,
+                                                zone_index:int,
+                                                ) -> dict:
+        ''' Set Koolnova v2 opening angle for zones Z1 to Z8 '''
+        return await self._async_write_v2_register(
+            "40080_opening_angle_z1_z8",
+            self._client.async_set_v2_opening_angle_z1_z8,
+            self._client.async_v2_opening_angle_z1_z8,
+            angle_code,
+            zone_index,
+        )
+
+    async def async_set_v2_opening_angle_z9_z16(self,
+                                                angle_code:int,
+                                                zone_index:int,
+                                                ) -> dict:
+        ''' Set Koolnova v2 opening angle for zones Z9 to Z16 '''
+        return await self._async_write_v2_register(
+            "40081_opening_angle_z9_z16",
+            self._client.async_set_v2_opening_angle_z9_z16,
+            self._client.async_v2_opening_angle_z9_z16,
+            angle_code,
+            zone_index,
+        )
+
+    async def async_set_v2_valve_mask(self,
+                                        enabled_zone_indexes:list[int],
+                                        ) -> dict:
+        ''' Set Koolnova v2 valve mask '''
+        raw = 0
+        for zone_index in enabled_zone_indexes:
+            if zone_index < 0 or zone_index > 15:
+                raise UpdateValueError("zone_index must be between 0 and 15")
+            raw |= 1 << zone_index
+        return await self._async_write_v2_register(
+            "40085_valve_mask",
+            self._client.async_set_v2_valve_mask,
+            self._client.async_v2_valve_mask,
+            raw,
+        )
+
+    async def async_set_v2_zone_pump_enabled(self,
+                                                zone_index:int,
+                                                enabled:bool,
+                                                ) -> dict:
+        ''' Set one Koolnova v2 valve mask zone flag '''
+        if zone_index < 0 or zone_index > 15:
+            raise UpdateValueError("zone_index must be between 0 and 15")
+        raw = await self._async_v2_register_raw(
+            "40085_valve_mask",
+            self._client.async_v2_valve_mask,
+        )
+        raw = Koolnova._replace_bit(raw, zone_index, enabled)
+        return await self._async_write_v2_register(
+            "40085_valve_mask",
+            self._client.async_set_v2_valve_mask,
+            self._client.async_v2_valve_mask,
+            raw,
+        )
+
+    async def async_set_v2_pump_delay_valve_offset(self,
+                                                    valve_origin_offset:int,
+                                                    pump_delay_seconds:int,
+                                                    ) -> dict:
+        ''' Set Koolnova v2 pump delay and valve offset '''
+        return await self._async_write_v2_register(
+            "40086_pump_delay_valve_offset",
+            self._client.async_set_v2_pump_delay_valve_offset,
+            self._client.async_v2_pump_delay_valve_offset,
+            valve_origin_offset,
+            pump_delay_seconds,
+        )
+
+    async def async_set_v2_immersion_heater(self,
+                                            activation_delay_minutes:int,
+                                            activation_temperature_celsius:int,
+                                            ) -> dict:
+        ''' Set Koolnova v2 immersion heater settings '''
+        return await self._async_write_v2_register(
+            "40087_immersion_heater",
+            self._client.async_set_v2_immersion_heater,
+            self._client.async_v2_immersion_heater,
+            activation_delay_minutes,
+            activation_temperature_celsius,
+        )
+
+    async def async_set_v2_thermostat_block(self,
+                                            block_level:int,
+                                            ) -> dict:
+        ''' Set Koolnova v2 thermostat block level '''
+        return await self._async_write_v2_register(
+            "40088_thermostat_block",
+            self._client.async_set_v2_thermostat_block,
+            self._client.async_v2_thermostat_block,
+            block_level,
+        )
+
+    async def async_set_v2_auto_mode(self,
+                                    cooling_water_threshold_celsius:int,
+                                    heating_water_threshold_celsius:int,
+                                    ) -> dict:
+        ''' Set Koolnova v2 automatic mode water thresholds '''
+        return await self._async_write_v2_register(
+            "40089_auto_mode",
+            self._client.async_set_v2_auto_mode,
+            self._client.async_v2_auto_mode,
+            cooling_water_threshold_celsius,
+            heating_water_threshold_celsius,
+        )
+
+    async def async_set_v2_mixing_valve_ambient_temperatures(self,
+                                                            upper_ambient_temperature_celsius:int,
+                                                            lower_ambient_temperature_celsius:int,
+                                                            ) -> dict:
+        ''' Set Koolnova v2 mixing valve ambient temperatures '''
+        return await self._async_write_v2_register(
+            "40090_mixing_valve_ambient_temperatures",
+            self._client.async_set_v2_mixing_valve_ambient_temperatures,
+            self._client.async_v2_mixing_valve_ambient_temperatures,
+            upper_ambient_temperature_celsius,
+            lower_ambient_temperature_celsius,
+        )
+
+    async def async_set_v2_mixing_valve_water_temperatures(self,
+                                                            upper_water_temperature_celsius:int,
+                                                            lower_water_temperature_celsius:int,
+                                                            ) -> dict:
+        ''' Set Koolnova v2 mixing valve water temperatures '''
+        return await self._async_write_v2_register(
+            "40091_mixing_valve_water_temperatures",
+            self._client.async_set_v2_mixing_valve_water_temperatures,
+            self._client.async_v2_mixing_valve_water_temperatures,
+            upper_water_temperature_celsius,
+            lower_water_temperature_celsius,
+        )
+
+    async def async_set_v2_mixing_valve_mode_info(self,
+                                                    safety_factor_code:int,
+                                                    mode:int,
+                                                    cooling_supply_temperature_celsius:int,
+                                                    heating_supply_temperature_celsius:int,
+                                                    ) -> dict:
+        ''' Set Koolnova v2 mixing valve mode information '''
+        return await self._async_write_v2_register(
+            "40092_mixing_valve_mode_info",
+            self._client.async_set_v2_mixing_valve_mode_info,
+            self._client.async_v2_mixing_valve_mode_info,
+            safety_factor_code,
+            mode,
+            cooling_supply_temperature_celsius,
+            heating_supply_temperature_celsius,
+        )
 
     @property
     def debug(self) -> bool:
