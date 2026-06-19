@@ -284,6 +284,8 @@ class Koolnova:
         self._sys_state = const.SysState.SYS_STATE_OFF
         self._engines = []
         self._areas = []
+        self._system_registers = {}
+        self._v2_registers = {}
 
     @property
     def table_version(self) -> str:
@@ -294,6 +296,116 @@ class Koolnova:
     def supports_efficiency(self) -> bool:
         """Return whether this table version supports scalar efficiency."""
         return self._client.supports_efficiency
+
+    @property
+    def v2_registers(self) -> dict:
+        """Return raw Koolnova 2.0 advanced register values."""
+        return self._v2_registers
+
+    @property
+    def system_registers(self) -> dict:
+        """Return raw common system register values."""
+        return self._system_registers
+
+    async def _async_update_system_registers(self) -> bool:
+        """Update raw common system register values with unit reads."""
+        register_reads = (
+            ("communication_config", self._client.async_communication_config),
+            ("modbus_address", self._client.async_modbus_address),
+            ("infrared_receiver_id", self._client.async_clim_id),
+        )
+
+        values = {}
+        for key, read_register in register_reads:
+            ret, value = await read_register()
+            if not ret:
+                _LOGGER.error("Error retreiving Koolnova system register %s", key)
+                return False
+            values[key] = value
+        self._system_registers = values
+        return True
+
+    async def _async_update_v2_registers(self) -> bool:
+        """Update raw Koolnova 2.0 advanced register values with unit reads."""
+        if self._table_version != const.TABLE_VERSION_V2:
+            self._v2_registers = {}
+            return True
+
+        # Keep individually named registers explicit for easier Modbus debugging.
+        register_reads = (
+            ("40073_model_version", self._client.async_v2_model_version),
+            ("40074_parameters", self._client.async_v2_parameters),
+            ("40075_active_modes", self._client.async_v2_active_modes),
+            ("40076_temperature_limits", self._client.async_v2_temperature_limits),
+            ("40077_auto_changeover_humidity", self._client.async_v2_auto_changeover_humidity),
+            ("40078_system_time", self._client.async_v2_system_time),
+            ("40079_external_inputs", self._client.async_v2_external_inputs),
+            ("40080_opening_angle_z1_z8", self._client.async_v2_opening_angle_z1_z8),
+            ("40081_opening_angle_z9_z16", self._client.async_v2_opening_angle_z9_z16),
+            ("40082_floor_water_temperature", self._client.async_v2_floor_water_temperature),
+            ("40083_outdoor_temperature", self._client.async_v2_outdoor_temperature),
+            ("40084_aux_temperature", self._client.async_v2_aux_temperature),
+            ("40085_valve_mask", self._client.async_v2_valve_mask),
+            ("40086_pump_delay_valve_offset", self._client.async_v2_pump_delay_valve_offset),
+            ("40087_immersion_heater", self._client.async_v2_immersion_heater),
+            ("40088_thermostat_block", self._client.async_v2_thermostat_block),
+            ("40089_auto_mode", self._client.async_v2_auto_mode),
+            ("40090_mixing_valve_ambient_temperatures", self._client.async_v2_mixing_valve_ambient_temperatures),
+            ("40091_mixing_valve_water_temperatures", self._client.async_v2_mixing_valve_water_temperatures),
+            ("40092_mixing_valve_mode_info", self._client.async_v2_mixing_valve_mode_info),
+            ("40107_reserved", self._client.async_v2_reserved_40107),
+            ("40111_radiant_floor_demand_count", self._client.async_v2_radiant_floor_demand_count),
+            ("40112_ac3_air_demand_count", self._client.async_v2_ac3_air_demand_count),
+            ("40126_efficiency_ac3_speed", self._client.async_v2_efficiency_ac3_speed),
+        )
+
+        values = {}
+        # Read non-contiguous and standalone registers one by one.
+        for key, read_register in register_reads:
+            ret, value = await read_register()
+            if not ret:
+                _LOGGER.error("Error retreiving Koolnova v2 register %s", key)
+                return False
+            values[key] = value
+
+        # Read contiguous AC1-AC4 register groups as small blocks.
+        ret, connected_volumes = await self._client.async_v2_connected_volumes()
+        if not ret:
+            return False
+        for idx, value in enumerate(connected_volumes):
+            engine_id = idx + 1
+            reg = const.REG_V2_START_CONNECTED_VOLUME + (engine_id - 1)
+            values["{}_connected_volume_ac{}".format(
+                reg + const.MODBUS_LOGICAL_ADDRESS_BASE,
+                engine_id,
+            )] = value
+
+        ret, active_volumes = await self._client.async_v2_active_volumes()
+        if not ret:
+            return False
+        for idx, value in enumerate(active_volumes):
+            engine_id = idx + 1
+            reg = const.REG_V2_START_ACTIVE_VOLUME + (engine_id - 1)
+            values["{}_active_volume_ac{}".format(
+                reg + const.MODBUS_LOGICAL_ADDRESS_BASE,
+                engine_id,
+            )] = value
+
+        # The official table skips 40124, so AC4 is mapped explicitly to 40125.
+        ret, requested_temp_avgs = await self._client.async_v2_requested_temp_avgs()
+        if not ret:
+            return False
+        for idx, value in enumerate(requested_temp_avgs):
+            engine_id = idx + 1
+            reg = const.REG_V2_START_REQUESTED_TEMP_AVG + (engine_id - 1)
+            if engine_id == 4:
+                reg += 1
+            values["{}_requested_temp_avg_ac{}".format(
+                reg + const.MODBUS_LOGICAL_ADDRESS_BASE,
+                engine_id,
+            )] = value
+        self._v2_registers = values
+        return True
 
     def _area_defined(self, 
                         id_search:int = 0,
@@ -338,13 +450,28 @@ class Koolnova:
         await asyncio.sleep(0.1)
 
         _LOGGER.debug("Retreive engines ...")
+        engines = []
         for idx in range(1, const.NUM_OF_ENGINES + 1):
             engine = Engine(engine_id = idx)
             ret, engine.throughput = await self._client.async_engine_throughput(engine_id = idx)
             ret, engine.state = await self._client.async_engine_state(engine_id = idx)
             ret, engine.order_temp = await self._client.async_engine_order_temp(engine_id = idx)
-            self._engines.append(engine)
+            engines.append(engine)
             await asyncio.sleep(0.1)
+        self._engines = engines
+
+        _LOGGER.debug("Retreive common system registers ...")
+        ret = await self._async_update_system_registers()
+        if not ret:
+            return False
+
+        if self._table_version == const.TABLE_VERSION_V2:
+            _LOGGER.debug("Retreive Koolnova v2 advanced registers ...")
+            ret = await self._async_update_v2_registers()
+            if not ret:
+                return False
+        else:
+            self._v2_registers = {}
         return True
 
     async def async_connect(self) -> bool:
@@ -501,11 +628,24 @@ class Koolnova:
             _LOGGER.error("Error retreiving system status")
             self._sys_state = const.SysState.SYS_STATE_OFF
 
+        ret = await self._async_update_system_registers()
+        if not ret:
+            return None
+
+        if self._table_version == const.TABLE_VERSION_V2:
+            ret = await self._async_update_v2_registers()
+            if not ret:
+                return None
+        else:
+            self._v2_registers = {}
+
         return {"areas": self._areas, 
                 "engines": self._engines,
                 "glob": self._global_mode,
                 "eff": self._efficiency,
-                "sys": self._sys_state}
+                "sys": self._sys_state,
+                "system_registers": self._system_registers,
+                "v2_registers": self._v2_registers}
 
     @property
     def engines(self) -> list:

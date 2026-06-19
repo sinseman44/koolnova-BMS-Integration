@@ -41,12 +41,75 @@ TABLE_VERSION_OPTIONS = (
 REG_V2_MODEL_VERSION = 72
 V1_FLOW_STATE_VALUES = (1, 2, 3, 4)
 
+# Koolnova 2.0 advanced registers. Offsets are zero-based Modbus addresses
+# matching the official logical addresses 40073 to 40092 and 40111 to 40126.
+# 40074: paramètres système, sorties relais, efficacité/ECO/STOP/antigel/humidité.
+REG_V2_PARAMETERS = 73
+# 40075: MDA, modes système actifs ou cachés.
+REG_V2_ACTIVE_MODES = 74
+# 40076: LT3, limite chauffage maximale et limite refroidissement minimale.
+REG_V2_TEMPERATURE_LIMITS = 75
+# 40077: modes de changement automatique et contrôle humidité.
+REG_V2_AUTO_CHANGEOVER_HUMIDITY = 76
+# 40078: heure du système.
+REG_V2_SYSTEM_TIME = 77
+# 40079: INM, configuration des entrées externes DIN1 et DIN2.
+REG_V2_EXTERNAL_INPUTS = 78
+# 40080: APZ, angle d'ouverture des zones Z1 à Z8.
+REG_V2_OPENING_ANGLE_Z1_Z8 = 79
+# 40081: APZ, angle d'ouverture des zones Z9 à Z16.
+REG_V2_OPENING_ANGLE_Z9_Z16 = 80
+# 40082: WTE, NTC eau plancher chauffant.
+REG_V2_FLOOR_WATER_TEMPERATURE = 81
+# 40083: EXT, température ambiante extérieure.
+REG_V2_OUTDOOR_TEMPERATURE = 82
+# 40084: AUX, NTC auxiliaire.
+REG_V2_AUX_TEMPERATURE = 83
+# 40085: MKE, masque d'électrovannes.
+REG_V2_VALVE_MASK = 84
+# 40086: MKE, retard pompe et offset d'électrovannes.
+REG_V2_PUMP_DELAY_VALVE_OFFSET = 85
+# 40087: HET, résistance d'immersion.
+REG_V2_IMMERSION_HEATER = 86
+# 40088: BQ3, blocage de thermostats.
+REG_V2_THERMOSTAT_BLOCK = 87
+# 40089: MAU, mode automatique.
+REG_V2_AUTO_MODE = 88
+# 40090: CTH_LOW, températures ambiantes pour vanne mélangeuse.
+REG_V2_MIXING_VALVE_AMBIENT_TEMPERATURES = 89
+# 40091: CTH_HIGH, températures d'eau pour vanne mélangeuse.
+REG_V2_MIXING_VALVE_WATER_TEMPERATURES = 90
+# 40092: CTM, mode vanne mélangeuse et températures fixes froid/chaleur.
+REG_V2_MIXING_VALVE_MODE_INFO = 91
+# 40107: réservé.
+REG_V2_RESERVED_40107 = 106
+# 40111: nombre de thermostats qui demandent du chauffage au sol.
+REG_V2_RADIANT_FLOOR_DEMAND_COUNT = 110
+# 40112: nombre de thermostats qui demandent de l'air dans AC3.
+REG_V2_AC3_AIR_DEMAND_COUNT = 111
+# 40113: somme du volume des thermostats connectés pour AC1.
+REG_V2_START_CONNECTED_VOLUME = 112
+# 40113-40116: somme du volume des thermostats connectés pour AC1 à AC4.
+NUM_REG_V2_CONNECTED_VOLUME = 4
+# 40117: somme du volume des thermostats actifs en demande pour AC1.
+REG_V2_START_ACTIVE_VOLUME = 116
+# 40117-40120: somme du volume des thermostats actifs en demande pour AC1 à AC4.
+NUM_REG_V2_ACTIVE_VOLUME = 4
+# 40121: moyenne des températures de consigne demandées par AC1.
+REG_V2_START_REQUESTED_TEMP_AVG = 120
+# 40121-40123 et 40125: moyennes des températures de consigne pour AC1 à AC4.
+NUM_REG_V2_REQUESTED_TEMP_AVG = 4
+# 40126: MSB EFI, LSB vitesse AC3.
+REG_V2_EFFICIENCY_AC3_SPEED = 125
+
 # Chaque zone climatique est définie par 4 registres et il y a 16 zones possibles,
 # donc le climat est défini par 64 registres
 REG_START_ZONE = 0
 
 # Commandes Modbus prises en charge sont le Read Holding Register (0x03)
 # et le Write Single Register (0x06)
+
+MODBUS_LOGICAL_ADDRESS_BASE = 40001
 
 REG_LOCK_ZONE = 0 # 40001, 40005, 40009, etc ...
 REG_STATE_AND_FLOW = 1 # 40002, 40006, 40010, etc ...

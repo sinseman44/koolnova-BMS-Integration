@@ -206,6 +206,492 @@ class Operations:
         )
         return True, table_version
 
+    async def async_v2_model_version(self) -> (bool, int):
+        ''' read 40073: control unit model and software version '''
+        reg, ret = await self.__async_read_register(const.REG_V2_MODEL_VERSION)
+        if not ret:
+            _LOGGER.error('Error retreive v2 model version')
+            reg = 0
+        return ret, reg
+
+    async def async_v2_parameters(self) -> (bool, dict):
+        ''' read 40074: system parameters '''
+        reg, ret = await self.__async_read_register(const.REG_V2_PARAMETERS)
+        if not ret:
+            _LOGGER.error('Error retreive v2 parameters')
+            return ret, {}
+
+        msb = (reg >> 8) & 0xFF
+        lsb = reg & 0xFF
+        return ret, {
+            "raw": reg,
+            "msb": msb,
+            "lsb": lsb,
+            "hum": bool(msb & 0x80),
+            "af": bool(msb & 0x40),
+            "reserved_msb_bit5": bool(msb & 0x20),
+            "stop": bool(msb & 0x10),
+            "eco": bool(msb & 0x08),
+            "efi": msb & 0x07,
+            "reserved_lsb_bit7": bool(lsb & 0x80),
+            "din2": bool(lsb & 0x40),
+            "din1": bool(lsb & 0x20),
+            "aux1": bool(lsb & 0x10),
+            "heating": bool(lsb & 0x08),
+            "pump": bool(lsb & 0x04),
+            "k5": bool(lsb & 0x02),
+            "k6": bool(lsb & 0x01),
+        }
+
+    async def async_v2_active_modes(self) -> (bool, dict):
+        ''' read 40075: active modes '''
+        reg, ret = await self.__async_read_register(const.REG_V2_ACTIVE_MODES)
+        if not ret:
+            _LOGGER.error('Error retreive v2 active modes')
+            return ret, {}
+
+        msb = (reg >> 8) & 0xFF
+        lsb = reg & 0xFF
+        return ret, {
+            "raw": reg,
+            "msb": msb,
+            "lsb": lsb,
+            "bit7_expected_zero": bool(lsb & 0x80),
+            "radiant_floor_heating": bool(lsb & 0x40),
+            "radiant_floor_cooling": bool(lsb & 0x20),
+            "radiant_floor": bool(lsb & 0x10),
+            "dehumidification": bool(lsb & 0x08),
+            "heating": bool(lsb & 0x04),
+            "cooling": bool(lsb & 0x02),
+            "ventilation": bool(lsb & 0x01),
+        }
+
+    async def async_v2_temperature_limits(self) -> (bool, dict):
+        ''' read 40076: temperature limits '''
+        reg, ret = await self.__async_read_register(const.REG_V2_TEMPERATURE_LIMITS)
+        if not ret:
+            _LOGGER.error('Error retreive v2 temperature limits')
+            return ret, {}
+
+        msb = (reg >> 8) & 0xFF
+        lsb = reg & 0xFF
+        # The PDF does not document a /2 conversion here, unlike zone temperatures.
+        return ret, {
+            "raw": reg,
+            "msb": msb,
+            "lsb": lsb,
+            "max_heating_limit": msb,
+            "min_cooling_limit": lsb,
+        }
+
+    async def async_v2_auto_changeover_humidity(self) -> (bool, dict):
+        ''' read 40077: automatic changeover modes and humidity control '''
+        reg, ret = await self.__async_read_register(const.REG_V2_AUTO_CHANGEOVER_HUMIDITY)
+        if not ret:
+            _LOGGER.error('Error retreive v2 auto changeover humidity')
+            return ret, {}
+
+        msb = (reg >> 8) & 0xFF
+        lsb = reg & 0xFF
+        mode_when_above = (msb >> 4) & 0x0F
+        mode_when_below = msb & 0x0F
+        return ret, {
+            "raw": reg,
+            "msb": msb,
+            "lsb": lsb,
+            "mode_when_water_above_threshold": mode_when_above,
+            "mode_when_water_above_threshold_name": {
+                0x04: "radiant_floor_heating",
+                0x06: "radiant_floor_heating_and_heating",
+                0x02: "heating",
+            }.get(mode_when_above),
+            "mode_when_water_below_threshold": mode_when_below,
+            "mode_when_water_below_threshold_name": {
+                0x01: "cooling",
+                0x05: "radiant_floor_cooling_and_cooling",
+            }.get(mode_when_below),
+            "humidity_relay_threshold": lsb,
+        }
+
+    async def async_v2_system_time(self) -> (bool, dict):
+        ''' read 40078: system time '''
+        reg, ret = await self.__async_read_register(const.REG_V2_SYSTEM_TIME)
+        if not ret:
+            _LOGGER.error('Error retreive v2 system time')
+            return ret, {}
+
+        reserved_prefix = (reg >> 14) & 0x03
+        day = (reg >> 11) & 0x07
+        hour = (reg >> 6) & 0x1F
+        minute = reg & 0x3F
+        return ret, {
+            "raw": reg,
+            "reserved_prefix": reserved_prefix,
+            "day": day,
+            "day_name": {
+                1: "monday",
+                2: "tuesday",
+                3: "wednesday",
+                4: "thursday",
+                5: "friday",
+                6: "saturday",
+                7: "sunday",
+            }.get(day),
+            "hour": hour,
+            "minute": minute,
+        }
+
+    async def async_v2_external_inputs(self) -> (bool, dict):
+        ''' read 40079: external inputs '''
+        reg, ret = await self.__async_read_register(const.REG_V2_EXTERNAL_INPUTS)
+        if not ret:
+            _LOGGER.error('Error retreive v2 external inputs')
+            return ret, {}
+
+        msb = (reg >> 8) & 0xFF
+        lsb = reg & 0xFF
+        return ret, {
+            "raw": reg,
+            "msb": msb,
+            "lsb": lsb,
+            "din2_function": (lsb >> 4) & 0x0F,
+            "din1_function": lsb & 0x0F,
+        }
+
+    async def async_v2_opening_angle_z1_z8(self) -> (bool, dict):
+        ''' read 40080: opening angle for zones Z1 to Z8 '''
+        reg, ret = await self.__async_read_register(const.REG_V2_OPENING_ANGLE_Z1_Z8)
+        if not ret:
+            _LOGGER.error('Error retreive v2 opening angle Z1 to Z8')
+            return ret, {}
+
+        msb = (reg >> 8) & 0xFF
+        lsb = reg & 0xFF
+        angle_code = (lsb >> 4) & 0x0F
+        zone_index = lsb & 0x0F
+        return ret, {
+            "raw": reg,
+            "msb": msb,
+            "lsb": lsb,
+            "angle_code": angle_code,
+            "angle_degrees": {
+                0x00: 45,
+                0x01: 60,
+                0x02: 75,
+                0x03: 90,
+            }.get(angle_code),
+            "zone_index": zone_index,
+            "zone_id": zone_index + 1,
+        }
+
+    async def async_v2_opening_angle_z9_z16(self) -> (bool, dict):
+        ''' read 40081: opening angle for zones Z9 to Z16 '''
+        reg, ret = await self.__async_read_register(const.REG_V2_OPENING_ANGLE_Z9_Z16)
+        if not ret:
+            _LOGGER.error('Error retreive v2 opening angle Z9 to Z16')
+            return ret, {}
+
+        msb = (reg >> 8) & 0xFF
+        lsb = reg & 0xFF
+        angle_code = (lsb >> 4) & 0x0F
+        zone_index = lsb & 0x0F
+        return ret, {
+            "raw": reg,
+            "msb": msb,
+            "lsb": lsb,
+            "angle_code": angle_code,
+            "angle_degrees": {
+                0x00: 45,
+                0x01: 60,
+                0x02: 75,
+                0x03: 90,
+            }.get(angle_code),
+            "zone_index": zone_index,
+            "zone_id": zone_index + 1,
+        }
+
+    async def async_v2_floor_water_temperature(self) -> (bool, float):
+        ''' read 40082: radiant floor water NTC temperature '''
+        reg, ret = await self.__async_read_register(const.REG_V2_FLOOR_WATER_TEMPERATURE)
+        if not ret:
+            _LOGGER.error('Error retreive v2 floor water temperature')
+            return ret, 0.0
+        return ret, reg / 10
+
+    async def async_v2_outdoor_temperature(self) -> (bool, float):
+        ''' read 40083: outdoor ambient temperature '''
+        reg, ret = await self.__async_read_register(const.REG_V2_OUTDOOR_TEMPERATURE)
+        if not ret:
+            _LOGGER.error('Error retreive v2 outdoor temperature')
+            return ret, 0.0
+
+        # Signed 16-bit tenths of degree: FF99 is -103d, so -10.3 C.
+        if reg & 0x8000:
+            reg -= 0x10000
+        return ret, reg / 10
+
+    async def async_v2_aux_temperature(self) -> (bool, float):
+        ''' read 40084: auxiliary NTC temperature '''
+        reg, ret = await self.__async_read_register(const.REG_V2_AUX_TEMPERATURE)
+        if not ret:
+            _LOGGER.error('Error retreive v2 auxiliary temperature')
+            return ret, 0.0
+
+        # Signed 16-bit tenths of degree: FF99 is -103d, so -10.3 C.
+        if reg & 0x8000:
+            reg -= 0x10000
+        return ret, reg / 10
+
+    async def async_v2_valve_mask(self) -> (bool, dict):
+        ''' read 40085: valve mask '''
+        reg, ret = await self.__async_read_register(const.REG_V2_VALVE_MASK)
+        if not ret:
+            _LOGGER.error('Error retreive v2 valve mask')
+            return ret, {}
+
+        msb = (reg >> 8) & 0xFF
+        lsb = reg & 0xFF
+        enabled_zone_indexes = [
+            zone_index
+            for zone_index in range(16)
+            if reg & (1 << zone_index)
+        ]
+        return ret, {
+            "raw": reg,
+            "msb": msb,
+            "lsb": lsb,
+            "enabled_zone_indexes": enabled_zone_indexes,
+            "zone_pump_enabled": {
+                zone_index: zone_index in enabled_zone_indexes
+                for zone_index in range(16)
+            },
+        }
+
+    async def async_v2_pump_delay_valve_offset(self) -> (bool, dict):
+        ''' read 40086: pump delay and valve offset '''
+        reg, ret = await self.__async_read_register(const.REG_V2_PUMP_DELAY_VALVE_OFFSET)
+        if not ret:
+            _LOGGER.error('Error retreive v2 pump delay valve offset')
+            return ret, {}
+
+        msb = (reg >> 8) & 0xFF
+        lsb = reg & 0xFF
+        return ret, {
+            "raw": reg,
+            "msb": msb,
+            "lsb": lsb,
+            "valve_origin_offset": msb,
+            "pump_delay_seconds": lsb,
+            "pump_delay_seconds_valid": 60 <= lsb <= 255,
+        }
+
+    async def async_v2_immersion_heater(self) -> (bool, dict):
+        ''' read 40087: immersion heater '''
+        reg, ret = await self.__async_read_register(const.REG_V2_IMMERSION_HEATER)
+        if not ret:
+            _LOGGER.error('Error retreive v2 immersion heater')
+            return ret, {}
+
+        msb = (reg >> 8) & 0xFF
+        lsb = reg & 0xFF
+        activation_temperature = lsb
+        if activation_temperature & 0x80:
+            activation_temperature -= 0x100
+        return ret, {
+            "raw": reg,
+            "msb": msb,
+            "lsb": lsb,
+            "activation_delay_minutes": msb,
+            "activation_temperature_celsius": activation_temperature,
+        }
+
+    async def async_v2_thermostat_block(self) -> (bool, dict):
+        ''' read 40088: thermostat block '''
+        reg, ret = await self.__async_read_register(const.REG_V2_THERMOSTAT_BLOCK)
+        if not ret:
+            _LOGGER.error('Error retreive v2 thermostat block')
+            return ret, {}
+
+        msb = (reg >> 8) & 0xFF
+        lsb = reg & 0xFF
+        return ret, {
+            "raw": reg,
+            "msb": msb,
+            "lsb": lsb,
+            "msb_expected_zero": msb == 0,
+            "block_level": lsb,
+            "block_level_valid": 0x00 <= lsb <= 0x0F,
+            "no_block": lsb == 0x00,
+            "total_block": lsb == 0x0F,
+        }
+
+    async def async_v2_auto_mode(self) -> (bool, dict):
+        ''' read 40089: automatic mode '''
+        reg, ret = await self.__async_read_register(const.REG_V2_AUTO_MODE)
+        if not ret:
+            _LOGGER.error('Error retreive v2 auto mode')
+            return ret, {}
+
+        msb = (reg >> 8) & 0xFF
+        lsb = reg & 0xFF
+        return ret, {
+            "raw": reg,
+            "msb": msb,
+            "lsb": lsb,
+            "cooling_water_threshold_celsius": msb,
+            "heating_water_threshold_celsius": lsb,
+        }
+
+    async def async_v2_mixing_valve_ambient_temperatures(self) -> (bool, dict):
+        ''' read 40090: ambient temperatures for mixing valve control '''
+        reg, ret = await self.__async_read_register(const.REG_V2_MIXING_VALVE_AMBIENT_TEMPERATURES)
+        if not ret:
+            _LOGGER.error('Error retreive v2 mixing valve ambient temperatures')
+            return ret, {}
+
+        msb = (reg >> 8) & 0xFF
+        lsb = reg & 0xFF
+        lower_ambient_temperature = lsb
+        if lower_ambient_temperature & 0x80:
+            lower_ambient_temperature -= 0x100
+        return ret, {
+            "raw": reg,
+            "msb": msb,
+            "lsb": lsb,
+            "upper_ambient_temperature_celsius": msb,
+            "upper_ambient_temperature_valid": 25 <= msb <= 45,
+            "lower_ambient_temperature_celsius": lower_ambient_temperature,
+            "lower_ambient_temperature_valid": -20 <= lower_ambient_temperature <= 30,
+        }
+
+    async def async_v2_mixing_valve_water_temperatures(self) -> (bool, dict):
+        ''' read 40091: water temperatures for mixing valve control '''
+        reg, ret = await self.__async_read_register(const.REG_V2_MIXING_VALVE_WATER_TEMPERATURES)
+        if not ret:
+            _LOGGER.error('Error retreive v2 mixing valve water temperatures')
+            return ret, {}
+
+        msb = (reg >> 8) & 0xFF
+        lsb = reg & 0xFF
+        return ret, {
+            "raw": reg,
+            "msb": msb,
+            "lsb": lsb,
+            "upper_water_temperature_celsius": msb,
+            "upper_water_temperature_valid": 25 <= msb <= 45,
+            "lower_water_temperature_celsius": lsb,
+            "lower_water_temperature_valid": 25 <= lsb <= 45,
+        }
+
+    async def async_v2_mixing_valve_mode_info(self) -> (bool, dict):
+        ''' read 40092: mixing valve mode information '''
+        reg, ret = await self.__async_read_register(const.REG_V2_MIXING_VALVE_MODE_INFO)
+        if not ret:
+            _LOGGER.error('Error retreive v2 mixing valve mode info')
+            return ret, {}
+
+        msb = (reg >> 8) & 0xFF
+        lsb = reg & 0xFF
+        safety_factor_code = (reg >> 14) & 0x03
+        mode = (reg >> 12) & 0x03
+        cooling_supply_temperature = (reg >> 6) & 0x3F
+        heating_supply_temperature = reg & 0x3F
+        return ret, {
+            "raw": reg,
+            "msb": msb,
+            "lsb": lsb,
+            "safety_factor_code": safety_factor_code,
+            "safety_factor": {
+                0x00: 0,
+                0x01: 2,
+                0x02: -2,
+            }.get(safety_factor_code),
+            "mode": mode,
+            "cooling_mode": "dew_point" if mode & 0x02 else "fixed",
+            "heating_mode": "curve" if mode & 0x01 else "fixed",
+            "cooling_supply_temperature_celsius": cooling_supply_temperature,
+            "cooling_supply_temperature_valid": 10 <= cooling_supply_temperature <= 22,
+            "heating_supply_temperature_celsius": heating_supply_temperature,
+            "heating_supply_temperature_valid": 25 <= heating_supply_temperature <= 45,
+        }
+
+    async def async_v2_reserved_40107(self) -> (bool, int):
+        ''' read 40107: reserved register '''
+        reg, ret = await self.__async_read_register(const.REG_V2_RESERVED_40107)
+        if not ret:
+            _LOGGER.error('Error retreive v2 reserved register 40107')
+            reg = 0
+        return ret, reg
+
+    async def async_v2_radiant_floor_demand_count(self) -> (bool, int):
+        ''' read 40111: radiant floor heating thermostat demand count '''
+        reg, ret = await self.__async_read_register(const.REG_V2_RADIANT_FLOOR_DEMAND_COUNT)
+        if not ret:
+            _LOGGER.error('Error retreive v2 radiant floor demand count')
+            reg = 0
+        return ret, reg
+
+    async def async_v2_ac3_air_demand_count(self) -> (bool, int):
+        ''' read 40112: AC3 air thermostat demand count '''
+        reg, ret = await self.__async_read_register(const.REG_V2_AC3_AIR_DEMAND_COUNT)
+        if not ret:
+            _LOGGER.error('Error retreive v2 AC3 air demand count')
+            reg = 0
+        return ret, reg
+
+    async def async_v2_connected_volumes(self) -> (bool, list):
+        ''' read connected thermostat volume sum for AC1, AC2, AC3 and AC4 '''
+        regs, ret = await self.__async_read_registers(
+            const.REG_V2_START_CONNECTED_VOLUME,
+            const.NUM_REG_V2_CONNECTED_VOLUME,
+        )
+        if not ret:
+            _LOGGER.error('Error retreive v2 connected volumes')
+            regs = []
+        return ret, regs
+
+    async def async_v2_active_volumes(self) -> (bool, list):
+        ''' read active thermostat demand volume sum for AC1, AC2, AC3 and AC4 '''
+        regs, ret = await self.__async_read_registers(
+            const.REG_V2_START_ACTIVE_VOLUME,
+            const.NUM_REG_V2_ACTIVE_VOLUME,
+        )
+        if not ret:
+            _LOGGER.error('Error retreive v2 active volumes')
+            regs = []
+        return ret, regs
+
+    async def async_v2_requested_temp_avgs(self) -> (bool, list):
+        ''' read requested setpoint temperature average for AC1, AC2, AC3 and AC4 '''
+        regs, ret = await self.__async_read_registers(
+            const.REG_V2_START_REQUESTED_TEMP_AVG,
+            const.NUM_REG_V2_REQUESTED_TEMP_AVG - 1,
+        )
+        if not ret:
+            _LOGGER.error('Error retreive v2 requested temp averages AC1 to AC3')
+            return ret, []
+
+        # 40124 is not listed in the official table; AC4 is documented at 40125.
+        reg_ac4, ret = await self.__async_read_register(
+            const.REG_V2_START_REQUESTED_TEMP_AVG
+            + const.NUM_REG_V2_REQUESTED_TEMP_AVG
+        )
+        if not ret:
+            _LOGGER.error('Error retreive v2 requested temp average AC4')
+            return ret, []
+
+        regs = list(regs)
+        regs.append(reg_ac4)
+        return True, regs
+
+    async def async_v2_efficiency_ac3_speed(self) -> (bool, int):
+        ''' read 40126: MSB EFI and LSB AC3 speed '''
+        reg, ret = await self.__async_read_register(const.REG_V2_EFFICIENCY_AC3_SPEED)
+        if not ret:
+            _LOGGER.error('Error retreive v2 efficiency AC3 speed')
+            reg = 0
+        return ret, reg
+
     async def async_discover_registered_areas(self) -> list:
         ''' Discover all areas registered to the system '''
         regs, ret = await self.__async_read_registers(start_reg=const.REG_START_ZONE, 
@@ -347,6 +833,30 @@ class Operations:
         if not ret:
             _LOGGER.error('Error writing efficiency')
         return ret
+
+    async def async_communication_config(self) -> (bool, int):
+        ''' read Modbus communication frequency and parity '''
+        reg, ret = await self.__async_read_register(self._registers[const.REG_KEY_COMM])
+        if not ret:
+            _LOGGER.error('Error retreive communication config')
+            reg = 0
+        return ret, reg
+
+    async def async_modbus_address(self) -> (bool, int):
+        ''' read Modbus slave address '''
+        reg, ret = await self.__async_read_register(self._registers[const.REG_KEY_ADDR_MODBUS])
+        if not ret:
+            _LOGGER.error('Error retreive Modbus address')
+            reg = 0
+        return ret, reg
+
+    async def async_clim_id(self) -> (bool, int):
+        ''' read infrared receiver brand, model and machine number '''
+        reg, ret = await self.__async_read_register(self._registers[const.REG_KEY_CLIM_ID])
+        if not ret:
+            _LOGGER.error('Error retreive infrared receiver id')
+            reg = 0
+        return ret, reg
 
     async def async_engines_throughput(self) -> (bool, list):
         ''' read engines throughput AC1, AC2, AC3, AC4 '''
