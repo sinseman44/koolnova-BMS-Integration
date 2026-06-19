@@ -21,6 +21,7 @@ from .koolnova.const import (
 
 DOMAIN = "koolnova_bms"
 PLATFORMS: list[Platform] = [Platform.SENSOR,
+                                Platform.NUMBER,
                                 Platform.SELECT,
                                 Platform.SWITCH,
                                 Platform.CLIMATE]
