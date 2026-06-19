@@ -26,8 +26,9 @@ from .const import (
 from .coordinator import KoolnovaCoordinator
 
 from .koolnova.device import (
-    Koolnova, 
+    Koolnova,
     Engine,
+    Area,
 )
 
 from .koolnova.const import (
@@ -105,7 +106,7 @@ def _build_v2_select_entities(coordinator: KoolnovaCoordinator,
             coordinator,
             device,
             "40080_opening_angle_z1_z8",
-            "V2 opening angle Z1-Z8 zone index",
+            "V2 opening angle Z1-Z8 zone",
             range(8),
             device.async_set_v2_opening_angle_z1_z8,
         ),
@@ -120,7 +121,7 @@ def _build_v2_select_entities(coordinator: KoolnovaCoordinator,
             coordinator,
             device,
             "40081_opening_angle_z9_z16",
-            "V2 opening angle Z9-Z16 zone index",
+            "V2 opening angle Z9-Z16 zone",
             range(8, 16),
             device.async_set_v2_opening_angle_z9_z16,
         ),
@@ -357,7 +358,7 @@ class V2ExternalInputSelect(V2RegisterSelect):
         await self.coordinator.async_request_refresh()
 
 class V2OpeningAngleZoneSelect(V2RegisterSelect):
-    """Select component for the zone index field in registers 40080 and 40081."""
+    """Select component for the target area field in registers 40080 and 40081."""
 
     def __init__(self,
                     coordinator: KoolnovaCoordinator,
@@ -375,22 +376,49 @@ class V2OpeningAngleZoneSelect(V2RegisterSelect):
             f"{register_key}-zone-index",
         )
         self._setter = setter
-        self._attr_options = [str(value) for value in zone_indexes]
+        self._options_by_zone_index = self._area_options_by_zone_index(
+            device.areas,
+            zone_indexes,
+        )
+        self._zone_index_by_option = {
+            option: zone_index
+            for zone_index, option in self._options_by_zone_index.items()
+        }
+        self._attr_options = list(self._options_by_zone_index.values())
         self._attr_icon = "mdi:map-marker-radius"
+
+    @staticmethod
+    def _area_options_by_zone_index(areas:list[Area],
+                                    zone_indexes:range,
+                                    ) -> dict[int, str]:
+        """Return Home Assistant options keyed by the Modbus zone index."""
+        areas_by_zone_id = {
+            area.id_zone: area
+            for area in areas
+        }
+        options = {}
+        for zone_index in zone_indexes:
+            zone_id = zone_index + 1
+            area = areas_by_zone_id.get(zone_id)
+            if area is None or not area.name:
+                options[zone_index] = f"Z{zone_id}"
+            else:
+                options[zone_index] = f"Z{zone_id} - {area.name}"
+        return options
 
     @property
     def current_option(self) -> str | None:
-        """Return the selected zone index."""
+        """Return the selected target area."""
         value = self._register_value().get("zone_index")
-        return str(value) if value is not None else None
+        return self._options_by_zone_index.get(value)
 
     async def async_select_option(self, option: str) -> None:
-        """Change the selected zone index."""
-        if option not in self.options:
-            raise ValueError(f"Invalid zone index option: {option}")
+        """Change the selected target area."""
+        if option not in self._zone_index_by_option:
+            raise ValueError(f"Invalid target area option: {option}")
         await self._setter(
             self._required_register_value("angle_code"),
-            int(option),
+            self._zone_index_by_option[option],
         )
         await self.coordinator.async_request_refresh()
 
