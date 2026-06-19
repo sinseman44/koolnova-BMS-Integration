@@ -58,6 +58,34 @@ class KoolnovaConfigFlow(ConfigFlow, domain=DOMAIN):
         """Disconnect the temporary Modbus client used during config flow."""
         if self._conn and self._conn.connected():
             self._conn.disconnect()
+        self._conn = None
+
+    def _create_conn(self) -> Operations:
+        """Create a fresh temporary Modbus client from collected inputs."""
+        table_version = normalize_table_version(
+            self._user_inputs.get("Table_version")
+        )
+        if self._user_inputs["Mode"] == "Modbus RTU":
+            return Operations(mode="Modbus RTU",
+                              timeout=self._user_inputs["Timeout"],
+                              debug=self._user_inputs["Debug"],
+                              port=self._user_inputs["Device"],
+                              addr=self._user_inputs["Address"],
+                              baudrate=int(self._user_inputs["Baudrate"]),
+                              parity=self._user_inputs["Parity"][0],
+                              stopbits=self._user_inputs["Stopbits"],
+                              bytesize=self._user_inputs["Sizebyte"],
+                              table_version=table_version)
+        return Operations(mode="Modbus TCP",
+                          timeout=self._user_inputs["Timeout"],
+                          debug=self._user_inputs["Debug"],
+                          addr=self._user_inputs["Address"],
+                          port=self._user_inputs["Port"],
+                          modbus=self._user_inputs["Modbus"],
+                          retries=self._user_inputs["Retries"],
+                          reco_delay_min=self._user_inputs["Reconnect_delay_min"],
+                          reco_delay_max=self._user_inputs["Reconnect_delay_max"],
+                          table_version=table_version)
 
     async def _set_unique_id_and_abort_if_configured(self) -> None:
         """Set a stable unique id for this controller and abort duplicates."""
@@ -129,15 +157,7 @@ class KoolnovaConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input:
             _LOGGER.debug("[config_flow|tcp] values received: {}".format(user_input))
             self._user_inputs.update(user_input)
-            self._conn = Operations(mode="Modbus TCP",
-                                    timeout=self._user_inputs["Timeout"],
-                                    debug=self._user_inputs["Debug"],
-                                    addr=self._user_inputs["Address"],
-                                    port=self._user_inputs["Port"],
-                                    modbus=self._user_inputs["Modbus"],
-                                    retries=self._user_inputs["Retries"],
-                                    reco_delay_min=self._user_inputs["Reconnect_delay_min"],
-                                    reco_delay_max=self._user_inputs["Reconnect_delay_max"])
+            self._conn = self._create_conn()
             try:
                 await self._conn.async_connect()
                 if not self._conn.connected():
@@ -194,15 +214,7 @@ class KoolnovaConfigFlow(ConfigFlow, domain=DOMAIN):
             _LOGGER.debug("[config_flow|rtu] values received: {}".format(user_input))
             # Second call; On memorise les données dans le dictionnaire
             self._user_inputs.update(user_input)
-            self._conn = Operations(mode="Modbus RTU",
-                                    timeout=self._user_inputs["Timeout"],
-                                    debug=self._user_inputs["Debug"],
-                                    port=self._user_inputs["Device"],
-                                    addr=self._user_inputs["Address"],
-                                    baudrate=int(self._user_inputs["Baudrate"]),
-                                    parity=self._user_inputs["Parity"][0],
-                                    stopbits=self._user_inputs["Stopbits"],
-                                    bytesize=self._user_inputs["Sizebyte"])
+            self._conn = self._create_conn()
             try:
                 await self._conn.async_connect()
                 if not self._conn.connected():
@@ -250,8 +262,10 @@ class KoolnovaConfigFlow(ConfigFlow, domain=DOMAIN):
             )
             if table_version == TABLE_VERSION_AUTO:
                 try:
+                    self._conn = self._create_conn()
+                    await self._conn.async_connect()
                     if not self._conn.connected():
-                        await self._conn.async_connect()
+                        raise CannotConnectError(reason="Client Modbus not connected")
                     ret, table_version = await self._conn.async_detect_table_version()
                     self._disconnect_conn()
                     if not ret:
@@ -304,45 +318,43 @@ class KoolnovaConfigFlow(ConfigFlow, domain=DOMAIN):
                 for area in self._user_inputs["areas"]:
                     if user_input['Area_id'] == area['Area_id']:
                         raise AreaAlreadySetError(reason="Area is already configured")
-                # Last area to configure or not ?
-                if not user_input['Other_area']:
-                    try:
-                        if not self._conn.connected():
-                            await self._conn.async_connect()
-                        if user_input['Area_id'] < 1 or user_input['Area_id'] > NB_ZONE_MAX:
-                            raise ZoneIdError(reason="Area_id must be between 1 and 16")
-                        #_LOGGER.debug("test area registered with id: {}".format(user_input['Area_id']))
-                        # test if area is configured into koolnova system 
-                        ret, _ = await self._conn.async_area_registered(user_input["Area_id"])
-                        if not ret:
-                            self._disconnect_conn()
-                            raise AreaNotRegistredError(reason="Area Id is not registred")
-                    
-                        self._disconnect_conn()
-                        # Update dict
-                        self._user_inputs["areas"].append(user_input)
-                        # Create entities
-                        return self.async_create_entry(title=CONF_NAME, 
-                                                        data=self._user_inputs)
-                    except CannotConnectError:
-                        _LOGGER.exception("Cannot connect to koolnova system")
-                        self._disconnect_conn()
-                        errors[CONF_BASE] = "cannot_connect"
-                    except AreaNotRegistredError:
-                        _LOGGER.exception("Area (id:{}) is not registered to the koolnova system".format(user_input['Area_id']))
-                        errors[CONF_BASE] = "area_not_registered"
-                    except ZoneIdError:
-                        _LOGGER.exception("Area Id must be between 1 and 16")
-                        errors[CONF_BASE] = "zone_id_error"
-                    except Exception as e:
-                        self._disconnect_conn()
-                        _LOGGER.exception("Config Flow generic error")
-                else:
-                    #_LOGGER.debug("Config_flow [zone] - Une autre zone à configurer")
+                try:
+                    if user_input['Area_id'] < 1 or user_input['Area_id'] > NB_ZONE_MAX:
+                        raise ZoneIdError(reason="Area_id must be between 1 and 16")
+                    self._conn = self._create_conn()
+                    await self._conn.async_connect()
+                    if not self._conn.connected():
+                        raise CannotConnectError(reason="Client Modbus not connected")
+                    # test if area is configured into koolnova system
+                    ret, _ = await self._conn.async_area_registered(user_input["Area_id"])
+                    if not ret:
+                        raise AreaNotRegistredError(reason="Area Id is not registred")
+
+                    self._disconnect_conn()
                     # Update dict
                     self._user_inputs["areas"].append(user_input)
+                    # Last area to configure or not ?
+                    if not user_input['Other_area']:
+                        # Create entities
+                        return self.async_create_entry(title=CONF_NAME,
+                                                       data=self._user_inputs)
                     # New area to configure
                     return await self.async_step_areas()
+                except CannotConnectError:
+                    _LOGGER.exception("Cannot connect to koolnova system")
+                    self._disconnect_conn()
+                    errors[CONF_BASE] = "cannot_connect"
+                except AreaNotRegistredError:
+                    _LOGGER.exception("Area (id:%s) is not registered to the koolnova system", user_input['Area_id'])
+                    self._disconnect_conn()
+                    errors[CONF_BASE] = "area_not_registered"
+                except ZoneIdError:
+                    _LOGGER.exception("Area Id must be between 1 and 16")
+                    self._disconnect_conn()
+                    errors[CONF_BASE] = "zone_id_error"
+                except Exception:
+                    self._disconnect_conn()
+                    _LOGGER.exception("Config Flow generic error")
             
             except AreaAlreadySetError:
                 _LOGGER.exception("Area (id:{}) is already configured".format(user_input['Area_id']))

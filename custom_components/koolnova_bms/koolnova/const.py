@@ -213,8 +213,9 @@ def normalize_table_version(table_version:str | None) -> str:
 def register_map_for_table_version(table_version:str | None) -> dict:
     """Return the register map for a normalized table version.
 
-    Auto-detection is not implemented yet. Keep it conservative by using v1.0,
-    which preserves the previous integration behavior.
+    Runtime setup should resolve auto-detection before constructing the device.
+    Keep unresolved auto conservative by using v1.0, which preserves the
+    previous integration behavior.
     """
     if table_version == TABLE_VERSION_AUTO:
         table_version = TABLE_VERSION_DEFAULT
