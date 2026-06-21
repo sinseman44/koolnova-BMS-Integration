@@ -20,10 +20,8 @@ from homeassistant.components.climate.const import (
 from .const import (
     DOMAIN,
     SUPPORT_FLAGS,
-    SUPPORTED_HVAC_MODES,
     SUPPORTED_FAN_MODES,
     FAN_TRANSLATION,
-    HVAC_TRANSLATION,
 )
 
 from .coordinator import KoolnovaCoordinator
@@ -38,8 +36,8 @@ from .koolnova.const import (
     MAX_TEMP_ORDER,
     STEP_TEMP_ORDER,
     ZoneState,
-    ZoneClimMode,
     ZoneFanMode,
+    GlobalMode,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -65,7 +63,6 @@ class AreaClimateEntity(CoordinatorEntity, ClimateEntity):
 
     _attr_supported_features: int = SUPPORT_FLAGS
     _attr_temperature_unit: str = UnitOfTemperature.CELSIUS
-    _attr_hvac_modes: list[HVACMode] = SUPPORTED_HVAC_MODES
     _attr_fan_modes: list[str] = SUPPORTED_FAN_MODES
     _attr_hvac_mode: HVACMode = HVACMode.OFF
     _attr_fan_mode: str = FAN_OFF
@@ -94,15 +91,41 @@ class AreaClimateEntity(CoordinatorEntity, ClimateEntity):
         self._attr_fan_mode = FAN_TRANSLATION[int(self._area.fan_mode)]
         self._attr_hvac_mode = self._translate_to_hvac_mode()
 
-    def _translate_to_hvac_mode(self) -> int:
-        """ translate area state and clim mode to HA hvac mode """
-        ret = 0
-        if self._area.state == ZoneState.STATE_OFF:
-            ret = HVACMode.OFF
-        else:
-            ret = HVAC_TRANSLATION[int(self._area.clim_mode)]
+    @staticmethod
+    def _global_mode_to_hvac_mode(global_mode: GlobalMode) -> HVACMode | None:
+        """Translate the controller-wide Koolnova mode to a Home Assistant HVAC mode."""
+        global_hvac_modes = {
+            int(GlobalMode.VENTILATION): HVACMode.FAN_ONLY,
+            int(GlobalMode.COLD): HVACMode.COOL,
+            int(GlobalMode.HEAT): HVACMode.HEAT,
+            int(GlobalMode.DEHUMIDIFICATION): HVACMode.DRY,
+            int(GlobalMode.HEATING_FLOOR): HVACMode.HEAT,
+            int(GlobalMode.REFRESHING_FLOOR): HVACMode.COOL,
+            int(GlobalMode.HEATING_FLOOR_2): HVACMode.HEAT,
+        }
+        return global_hvac_modes.get(int(global_mode))
 
-        return ret
+    def _current_global_hvac_mode(self) -> HVACMode | None:
+        """Return the current controller-wide HVAC mode from the latest snapshot."""
+        coordinator_data = self.coordinator.data or {}
+        return self._global_mode_to_hvac_mode(
+            coordinator_data.get("glob", self._device.global_mode)
+        )
+
+    def _translate_to_hvac_mode(self) -> HVACMode:
+        """Translate the zone state to HA while keeping heat/cool controller-wide."""
+        if self._area.state == ZoneState.STATE_OFF:
+            return HVACMode.OFF
+
+        return self._current_global_hvac_mode() or HVACMode.OFF
+
+    @property
+    def hvac_modes(self) -> list[HVACMode]:
+        """Return only off plus the current global HVAC mode for zone entities."""
+        global_hvac_mode = self._current_global_hvac_mode()
+        if global_hvac_mode is None:
+            return [HVACMode.OFF]
+        return [HVACMode.OFF, global_hvac_mode]
 
     async def async_set_temperature(self,
                                     **kwargs,
@@ -136,17 +159,25 @@ class AreaClimateEntity(CoordinatorEntity, ClimateEntity):
     async def async_set_hvac_mode(self,
                                     hvac_mode:HVACMode,
                                     ) -> None:
-        """ set new target hvac mode """
+        """Set the zone on/off state without changing the controller-wide HVAC mode."""
         _LOGGER.debug("[Climate {}] set new hvac mode: {}".format(self._area.id_zone, hvac_mode))
-        opt = 0
-        for k,v in HVAC_TRANSLATION.items():
-            if v == hvac_mode:
-                opt = k
-                break
-        ret = await self._device.async_set_area_clim_mode(zone_id = self._area.id_zone, 
-                                                            mode = ZoneClimMode(opt))
+        if hvac_mode == HVACMode.OFF:
+            ret = await self._device.async_set_area_off(zone_id = self._area.id_zone)
+            if not ret:
+                _LOGGER.exception("Error setting off HVAC for area id {}".format(self._area.id_zone))
+            await self.coordinator.async_request_refresh()
+            return
+
+        global_hvac_mode = self._current_global_hvac_mode()
+        if hvac_mode != global_hvac_mode:
+            raise ValueError(
+                "Area HVAC mode cannot change the controller-wide Koolnova mode; "
+                "use the Global HVAC mode select entity"
+            )
+
+        ret = await self._device.async_set_area_on(zone_id = self._area.id_zone)
         if not ret:
-            _LOGGER.exception("Error setting new hvac value for area id {}".format(self._area.id_zone))
+            _LOGGER.exception("Error setting on HVAC for area id {}".format(self._area.id_zone))
         await self.coordinator.async_request_refresh()
         
     async def async_turn_off(self) -> None:
@@ -168,7 +199,8 @@ class AreaClimateEntity(CoordinatorEntity, ClimateEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """ Handle updated data from the coordinator """
-        for _cur_area in self.coordinator.data['areas']:
+        coordinator_data = self.coordinator.data or {}
+        for _cur_area in coordinator_data.get('areas', []):
             if _cur_area.id_zone == self._area.id_zone:
                 _LOGGER.debug("[UPDATE] [Climate {}] temp:{} - target:{} - state: {} - hvac:{} - fan:{}".format(_cur_area.id_zone,
                                                                                                         _cur_area.real_temp,
@@ -179,9 +211,6 @@ class AreaClimateEntity(CoordinatorEntity, ClimateEntity):
                 self._area = _cur_area
                 self._attr_current_temperature = _cur_area.real_temp
                 self._attr_target_temperature = _cur_area.order_temp
-                if _cur_area.state == ZoneState.STATE_OFF:
-                    self._attr_hvac_mode = HVACMode.OFF
-                else:
-                    self._attr_hvac_mode = HVAC_TRANSLATION[int(_cur_area.clim_mode)]
+                self._attr_hvac_mode = self._translate_to_hvac_mode()
                 self._attr_fan_mode = FAN_TRANSLATION[int(_cur_area.fan_mode)]
         self.async_write_ha_state()
