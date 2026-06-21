@@ -89,10 +89,10 @@ def _build_v2_sensor_entities(coordinator: KoolnovaCoordinator,
                                                 "mdi:gauge"))
 
     for engine, register in zip(device.engines, (40121, 40122, 40123, 40125)):
-        entities.append(V2EngineRegisterSensor(coordinator, device, engine,
-                                                "{}_requested_temp_avg_ac{}".format(register, engine.engine_id),
-                                                "V2 AC{} requested temperature average".format(engine.engine_id),
-                                                "mdi:thermometer-lines"))
+        entities.append(V2EngineTemperatureSensor(coordinator, device, engine,
+                                                    "{}_requested_temp_avg_ac{}".format(register, engine.engine_id),
+                                                    "V2 AC{} requested temperature average".format(engine.engine_id),
+                                                    "mdi:thermometer-lines"))
 
     entities.append(V2RegisterSensor(coordinator, device, "40126_efficiency_ac3_speed", "V2 efficiency AC3 speed", "mdi:counter"))
     return entities
@@ -188,6 +188,13 @@ class V2EngineRegisterSensor(V2RegisterSensor):
         self._engine = engine
         super().__init__(coordinator, device, key, name, icon)
         self._attr_unique_id = f"{DOMAIN}-{self._device.name}-Engine-AC{self._engine.engine_id}-{self._key}-sensor"
+
+class V2EngineTemperatureSensor(V2EngineRegisterSensor):
+    # pylint: disable = too-many-instance-attributes
+    """Diagnostic temperature sensor for a Koolnova v2 engine register."""
+
+    _attr_device_class: SensorDeviceClass = SensorDeviceClass.TEMPERATURE
+    _attr_native_unit_of_measurement: str = UnitOfTemperature.CELSIUS
 
 class DiagnosticsSensor(SensorEntity):
     # pylint: disable = too-many-instance-attributes
