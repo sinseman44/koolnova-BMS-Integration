@@ -67,8 +67,8 @@ def _build_v2_switch_entities(coordinator: KoolnovaCoordinator,
     entities.append(V2ActiveModeSwitch(coordinator, device, "radiant_floor_cooling", "V2 radiant floor cooling mode enabled"))
     entities.append(V2ActiveModeSwitch(coordinator, device, "radiant_floor_heating", "V2 radiant floor heating mode enabled"))
 
-    for zone_index in range(16):
-        entities.append(V2ZonePumpSwitch(coordinator, device, zone_index))
+    for area in device.areas:
+        entities.append(V2ZoneElectrovalveSwitch(coordinator, device, area.id_zone - 1))
     return entities
 
 class SystemStateSwitch(CoordinatorEntity, SwitchEntity):
@@ -178,8 +178,8 @@ class V2ActiveModeSwitch(CoordinatorEntity, SwitchEntity):
         """Icon of the entity."""
         return "mdi:tune-variant"
 
-class V2ZonePumpSwitch(CoordinatorEntity, SwitchEntity):
-    """Switch component for one Koolnova v2 zone pump mask bit."""
+class V2ZoneElectrovalveSwitch(CoordinatorEntity, SwitchEntity):
+    """Switch component for one Koolnova v2 zone electrovalve mask bit."""
 
     _attr_has_entity_name: bool = True
     _attr_device_class: SwitchDeviceClass = SwitchDeviceClass.SWITCH
@@ -195,7 +195,7 @@ class V2ZonePumpSwitch(CoordinatorEntity, SwitchEntity):
         self._device = device
         self._zone_index = zone_index
         self._zone_name = self._zone_display_name()
-        self._attr_name = f"{self._device.name} V2 {self._zone_name} pump enabled"
+        self._attr_name = f"{self._device.name} V2 {self._zone_name} electrovalve enabled"
         self._attr_device_info = self._device.device_info
         self._attr_unique_id = f"{DOMAIN}-{self._device.name}-40085-z{self._zone_index + 1}-pump-switch"
 
