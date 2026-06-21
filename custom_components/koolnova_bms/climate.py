@@ -63,6 +63,7 @@ class AreaClimateEntity(CoordinatorEntity, ClimateEntity):
 
     _attr_supported_features: int = SUPPORT_FLAGS
     _attr_temperature_unit: str = UnitOfTemperature.CELSIUS
+    _attr_hvac_modes: list[HVACMode] = [HVACMode.OFF]
     _attr_fan_modes: list[str] = SUPPORTED_FAN_MODES
     _attr_hvac_mode: HVACMode = HVACMode.OFF
     _attr_fan_mode: str = FAN_OFF
@@ -89,7 +90,7 @@ class AreaClimateEntity(CoordinatorEntity, ClimateEntity):
         self._attr_current_temperature = self._area.real_temp
         self._attr_target_temperature = self._area.order_temp
         self._attr_fan_mode = FAN_TRANSLATION[int(self._area.fan_mode)]
-        self._attr_hvac_mode = self._translate_to_hvac_mode()
+        self._sync_hvac_mode_attrs()
 
     @staticmethod
     def _global_mode_to_hvac_mode(global_mode: GlobalMode) -> HVACMode | None:
@@ -119,13 +120,20 @@ class AreaClimateEntity(CoordinatorEntity, ClimateEntity):
 
         return self._current_global_hvac_mode() or HVACMode.OFF
 
+    def _sync_hvac_mode_attrs(self) -> None:
+        """Refresh the advertised HVAC modes and the current mode together."""
+        global_hvac_mode = self._current_global_hvac_mode()
+        self._attr_hvac_modes = (
+            [HVACMode.OFF, global_hvac_mode]
+            if global_hvac_mode is not None
+            else [HVACMode.OFF]
+        )
+        self._attr_hvac_mode = self._translate_to_hvac_mode()
+
     @property
     def hvac_modes(self) -> list[HVACMode]:
         """Return only off plus the current global HVAC mode for zone entities."""
-        global_hvac_mode = self._current_global_hvac_mode()
-        if global_hvac_mode is None:
-            return [HVACMode.OFF]
-        return [HVACMode.OFF, global_hvac_mode]
+        return self._attr_hvac_modes
 
     async def async_set_temperature(self,
                                     **kwargs,
@@ -211,6 +219,6 @@ class AreaClimateEntity(CoordinatorEntity, ClimateEntity):
                 self._area = _cur_area
                 self._attr_current_temperature = _cur_area.real_temp
                 self._attr_target_temperature = _cur_area.order_temp
-                self._attr_hvac_mode = self._translate_to_hvac_mode()
+                self._sync_hvac_mode_attrs()
                 self._attr_fan_mode = FAN_TRANSLATION[int(_cur_area.fan_mode)]
         self.async_write_ha_state()
