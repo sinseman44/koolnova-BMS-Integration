@@ -152,7 +152,8 @@ class V2ActiveModeSwitch(CoordinatorEntity, SwitchEntity):
 
     def _register_value(self) -> dict:
         """Return the decoded active modes register."""
-        return self.coordinator.data.get("v2_registers", {}).get(
+        coordinator_data = self.coordinator.data or {}
+        return coordinator_data.get("v2_registers", {}).get(
             "40075_active_modes",
             self._device.v2_registers.get("40075_active_modes", {}),
         )
@@ -193,13 +194,23 @@ class V2ZonePumpSwitch(CoordinatorEntity, SwitchEntity):
         super().__init__(coordinator)
         self._device = device
         self._zone_index = zone_index
-        self._attr_name = f"{self._device.name} V2 zone {self._zone_index} pump enabled"
+        self._zone_name = self._zone_display_name()
+        self._attr_name = f"{self._device.name} V2 {self._zone_name} pump enabled"
         self._attr_device_info = self._device.device_info
-        self._attr_unique_id = f"{DOMAIN}-{self._device.name}-40085-zone-{self._zone_index}-pump-switch"
+        self._attr_unique_id = f"{DOMAIN}-{self._device.name}-40085-z{self._zone_index + 1}-pump-switch"
+
+    def _zone_display_name(self) -> str:
+        """Return a user-facing zone label for this Modbus zone index."""
+        zone_id = self._zone_index + 1
+        for area in self._device.areas:
+            if area.id_zone == zone_id and area.name:
+                return f"Z{zone_id} - {area.name}"
+        return f"Z{zone_id}"
 
     def _register_value(self) -> dict:
         """Return the decoded valve mask register."""
-        return self.coordinator.data.get("v2_registers", {}).get(
+        coordinator_data = self.coordinator.data or {}
+        return coordinator_data.get("v2_registers", {}).get(
             "40085_valve_mask",
             self._device.v2_registers.get("40085_valve_mask", {}),
         )

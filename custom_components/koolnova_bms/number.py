@@ -162,7 +162,8 @@ class V2RegisterNumber(CoordinatorEntity, NumberEntity):
 
     def _register_value(self) -> dict:
         """Return the current decoded register value from coordinator data."""
-        return self.coordinator.data.get("v2_registers", {}).get(
+        coordinator_data = self.coordinator.data or {}
+        return coordinator_data.get("v2_registers", {}).get(
             self._register_key,
             self._device.v2_registers.get(self._register_key, {}),
         )
@@ -179,8 +180,9 @@ class V2RegisterNumber(CoordinatorEntity, NumberEntity):
     @property
     def native_value(self):
         """Return the current number value."""
+        coordinator_data = self.coordinator.data or {}
         return self._value_from_registers(
-            self.coordinator.data.get("v2_registers", self._device.v2_registers)
+            coordinator_data.get("v2_registers", self._device.v2_registers)
         )
 
 class V2TemperatureLimitNumber(V2RegisterNumber):

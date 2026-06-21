@@ -133,8 +133,9 @@ class V2RegisterSensor(CoordinatorEntity, SensorEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
+        coordinator_data = self.coordinator.data or {}
         self._attr_native_value = self._value_from_registers(
-            self.coordinator.data.get("v2_registers", {})
+            coordinator_data.get("v2_registers", {})
         )
         self.async_write_ha_state()
 
