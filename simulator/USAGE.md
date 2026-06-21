@@ -87,3 +87,16 @@ Koolnova-Simulator|⇒  python3 koolnova_simulator.py --log=debug --profile v2
 The v2 profile keeps zone registers 40001 to 40064 compatible with v1, but moves the system block to the v2 offsets documented by Koolnova.
 
 Use `--config path/to/file.json` to load an explicit custom simulator file instead of the built-in profile.
+
+## Correlated registers
+
+The simulator applies a small Koolnova behavior layer on top of the static JSON datastore:
+
+| Write target | v1 offset | v2 offset | Simulator effect |
+| ------------ | --------: | --------: | ---------------- |
+| Global system on/off | 80 | 108 | Updates the on/off bit of all registered zones. |
+| Global HVAC mode | 81 | 109 | Updates the climate-mode nibble of all registered zones. |
+| Zone on/off register | `4 * zone` | `4 * zone` | Updates the global system state to on if any registered zone is on, otherwise off. |
+| Zone fan/mode register | `4 * zone + 1` | `4 * zone + 1` | Updates the global HVAC mode and mirrors that mode to all registered zones. |
+
+This keeps the simulator aligned with gainable behavior: heating/cooling is controller-wide, while zones are only enabled or disabled individually.
