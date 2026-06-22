@@ -12,7 +12,7 @@ _Disclaimer : This is not a Koolnova official integration and use at your own ri
 **koolnova-BMS-Integration** is an integration of koolnova system into Home Assistant using BMS (Building Management System) and Modbus RTU (RS485) protocol.
 
 > [!WARNING]
-> Koolnova has released version 2.0 of its system, and therefore of its communication method (Modbus Register table) with it. Currently, only version 1.0 is functional.
+> Koolnova 1.0 and Koolnova 2.0 use different Modbus register tables. This integration supports Koolnova 1.0 and includes Koolnova 2.0 support with a version selector and automatic detection. Koolnova 2.0 advanced registers are exposed progressively and should still be considered advanced configuration until validated on more real installations.
 
 ## Building Management System (BMS)
 
@@ -66,6 +66,10 @@ _In IEEE 802.11 (Wi-Fi) terminology, a station (abbreviated as STA) is a device 
 * A RS485 USB dongle (Example: DSD Tech SH-U11) for wired systems or a RS485/WIFI device (Example: Elfin EW11A or Elfin EW11-0, [example of configuration](EW11-config.md)) for wireless systems.
 * A Koolnova air conditioning system (identifier: 100-CPNR00 or 100-CPND00) with areas defined.
 * Enabling Modbus communication on the master radio thermostat (INT 49).
+* A Modbus register table version selected during setup:
+  * `Auto detect`
+  * `Koolnova 1.0`
+  * `Koolnova 2.0`
 
 ![INT49](png/koolnova-smart_radio_INT_49.png)
 
@@ -152,6 +156,17 @@ Adapt the fields according to your own configuration.<br />
 
 ![HA_tcp_config](png/koolnova_config_modbusTCP_infos.png)
 
+## Modbus register table version
+
+During setup, the integration asks which Koolnova Modbus register table must be used.
+
+* `Auto detect`: the integration reads a common register and tries to detect if the controller uses the Koolnova 1.0 or Koolnova 2.0 table.
+* `Koolnova 1.0`: uses the original register table.
+* `Koolnova 2.0`: uses the moved system registers and enables the Koolnova 2.0 diagnostic and advanced configuration entities.
+
+> [!IMPORTANT]
+> Do not use Koolnova 1.0 register addresses on a Koolnova 2.0 controller. Some addresses that were system commands in v1 are advanced configuration registers in v2.
+
 ## Area installation
 
 The next installation page is the area configuration.<br />
@@ -164,18 +179,30 @@ The area configuration ends with no new area.<br />
 
 # Features
 
-- Integrates local API to read/write Modbus koolnova registers
-- Provides `climate` for each area, `sensor`, `select` and `switch`
+- Local polling over Modbus RTU or Modbus TCP.
+- Config flow setup from the Home Assistant UI.
+- Multiple controller support when each controller has a unique device name and Modbus connection.
+- Koolnova 1.0 and Koolnova 2.0 Modbus table selection, with automatic detection.
+- `climate` entities for configured areas.
+- `sensor`, `number`, `select` and `switch` entities for diagnostics and configuration.
+- Versioned runtime register maps so Koolnova 2.0 system commands use the correct moved addresses.
 
 ## Climate
 
 ![koolnova_climate](png/koolnova_climate.png)
 
 The following parameters can be controlled for the `climate` platform entities:
-- Power
-- Target temperature (celcius, Min: 15°C -> Max: 35°C)
-- Operation mode (HVAC mode: Heating/Refeshing)
-- Fan mode (HVAC mode)
+- Area power on/off.
+- Target temperature (Celsius, Min: 15°C -> Max: 35°C).
+- Fan mode:
+  - Auto
+  - Off
+  - Low
+  - Medium
+  - High
+- Area HVAC mode follows the controller-wide `Global HVAC mode`.
+
+The Koolnova system uses a controller-wide heating/cooling mode. Area `climate` entities can turn a zone on or off and adjust the zone temperature and fan mode, but changing from cooling to heating is done from the `Global HVAC mode` select entity.
 
 ## Sensor (Diagnostic)
 ### for RTU mode
@@ -202,19 +229,36 @@ The following attributes are available for diagnostic `sensor` platform entities
 - Target temperature (celcius) for each area:
   - 0°C to 50°C
 
+### Koolnova 2.0 diagnostic sensors
+
+When the Koolnova 2.0 table is selected, additional diagnostic sensors are created from the v2 register table:
+
+- Control unit model/version register.
+- System time diagnostic fields.
+- Floor water temperature.
+- Outdoor temperature.
+- Auxiliary NTC temperature.
+- Radiant floor demand count.
+- AC3 air demand count.
+- Connected and active volume for AC1 to AC4.
+- Requested temperature average for AC1 to AC4.
+- Raw/reserved diagnostic values that are not safe to expose as user controls yet.
+
 ## Select
 
 ![koolnova_selects](png/koolnova_selects.png)
 
 The following parameters can be controlled for the `select` platform entities:
 - Global operation mode (HVAC mode)
+  - ventilation (Koolnova 2.0)
   - cold
   - heat
+  - dehumidification (Koolnova 2.0)
   - heating floor (need a specific hardware module, identifier: 100-MSR002)
   - refreshing floor and refreshing air (need a specific hardware module, identifier: 100-MSR002)
   - heating floor and heating air (need a specific hardware module, identifier: 100-MSR002)
 
-- Global efficiency defined the balance point between efficiency and speed of the area system.
+- Global efficiency, for Koolnova tables where the efficiency register is available, defines the balance point between efficiency and speed of the area system.
   - Lower: the set temperature is reached sooner
   - Higher: better efficiency 
 
@@ -224,11 +268,71 @@ The following parameters can be controlled for the `select` platform entities:
   - 3: Manual high
   - 4: Automatic
 
+### Koolnova 2.0 advanced selects
+
+When Koolnova 2.0 is selected, the integration also exposes advanced configuration selects:
+
+- EFI field from the v2 system parameters register.
+- Automatic changeover target modes:
+  - mode to apply above the heating water threshold
+  - mode to apply below the cooling water threshold
+- DIN1 and DIN2 external input function codes.
+- Opening angle per configured zone.
+- Thermostat block level.
+- Mixing valve safety factor.
+- Mixing valve cooling and heating modes.
+
+Some options are still numeric because the public Modbus table documents the encoding but not always the user-facing meaning.
+
+## Number
+
+The `number` platform is used for numeric configuration values. Koolnova 2.0 adds the following advanced number entities:
+
+- Heating and cooling temperature limits.
+- Automatic changeover water thresholds.
+- Automatic changeover humidity relay threshold.
+- Pump delay.
+- Valve origin offset.
+- Immersion heater activation delay and activation temperature.
+- Mixing valve ambient temperature limits.
+- Mixing valve water temperature limits.
+- Mixing valve fixed cooling/heating supply temperatures.
+
+### Koolnova 2.0 automatic changeover
+
+The Koolnova 2.0 automatic changeover settings are split across two related Modbus registers:
+
+- `40089` defines the water temperature thresholds used by the automatic mode:
+  - cooling / refreshing floor threshold, used when the measured water temperature is lower than or equal to the configured value.
+  - heating / radiant floor threshold, used when the measured water temperature is higher than or equal to the configured value.
+- `40077` defines what mode the controller should apply when those `40089` thresholds are crossed:
+  - target mode above the heating water threshold.
+  - target mode below the cooling water threshold.
+  - humidity relay threshold.
+
+In Home Assistant, these values are exposed as separate `select` and `number` entities, but they should be configured together. Changing only the thresholds without checking the target modes, or changing the target modes without checking the thresholds, can make the automatic mode behave unexpectedly.
+
 ## Switch
 
-The following parameters can be controlled for the `switch` platform entitie:
+The following parameters can be controlled for the `switch` platform entities:
 - Global HVAC State (stopped or running)
 - Modbus Debug (stopped or running)
+
+### Koolnova 2.0 advanced switches
+
+When Koolnova 2.0 is selected, the integration also exposes:
+
+- Mode availability switches used by the global HVAC mode selector:
+  - ventilation
+  - cooling
+  - heating
+  - dehumidification
+  - radiant floor
+  - radiant floor cooling
+  - radiant floor heating
+- Electrovalve enable switches for each configured zone.
+
+These entities write advanced Koolnova 2.0 configuration registers. Use them only if you understand the corresponding controller behavior.
 
 # Debugging
 
