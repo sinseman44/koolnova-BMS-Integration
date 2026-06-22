@@ -135,7 +135,7 @@ class V2RegisterSensor(CoordinatorEntity, SensorEntity):
         """Handle updated data from the coordinator."""
         coordinator_data = self.coordinator.data or {}
         self._attr_native_value = self._value_from_registers(
-            coordinator_data.get("v2_registers", {})
+            coordinator_data.get("v2_registers", self._device.v2_registers)
         )
         self.async_write_ha_state()
 

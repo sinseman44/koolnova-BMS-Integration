@@ -64,6 +64,11 @@ def _build_v2_number_entities(coordinator: KoolnovaCoordinator,
                                                 "V2 minimum cooling limit",
                                                 0,
                                                 255))
+    entities.append(V2AutoChangeoverHumidityNumber(coordinator, device,
+                                                    "humidity_relay_threshold",
+                                                    "V2 auto changeover humidity relay threshold",
+                                                    0,
+                                                    255))
     entities.append(V2PumpValveNumber(coordinator, device,
                                         "valve_origin_offset",
                                         "V2 valve origin offset",
@@ -90,12 +95,12 @@ def _build_v2_number_entities(coordinator: KoolnovaCoordinator,
                                             UnitOfTemperature.CELSIUS))
     entities.append(V2AutoModeNumber(coordinator, device,
                                         "cooling_water_threshold_celsius",
-                                        "V2 auto cooling water threshold",
+                                        "V2 auto changeover cooling water threshold",
                                         0,
                                         255))
     entities.append(V2AutoModeNumber(coordinator, device,
                                         "heating_water_threshold_celsius",
-                                        "V2 auto heating water threshold",
+                                        "V2 auto changeover heating water threshold",
                                         0,
                                         255))
     entities.append(V2MixingValveAmbientNumber(coordinator, device,
@@ -212,6 +217,33 @@ class V2TemperatureLimitNumber(V2RegisterNumber):
         else:
             min_cooling_limit = int(value)
         await self._device.async_set_v2_temperature_limits(max_heating_limit, min_cooling_limit)
+        await self.coordinator.async_request_refresh()
+
+class V2AutoChangeoverHumidityNumber(V2RegisterNumber):
+    """Number entity for the v2 automatic changeover humidity relay threshold."""
+
+    def __init__(self,
+                    coordinator: KoolnovaCoordinator,
+                    device: Koolnova,
+                    field:str,
+                    name:str,
+                    min_value:int,
+                    max_value:int,
+                    ) -> None:
+        """Class constructor."""
+        super().__init__(coordinator, device, "40077_auto_changeover_humidity",
+                            field, name, min_value, max_value, None)
+
+    async def async_set_native_value(self,
+                                        value: float,
+                                        ) -> None:
+        """Set the number value."""
+        register = self._register_value()
+        await self._device.async_set_v2_auto_changeover_humidity(
+            register["mode_when_water_above_threshold"],
+            register["mode_when_water_below_threshold"],
+            int(value),
+        )
         await self.coordinator.async_request_refresh()
 
 class V2PumpValveNumber(V2RegisterNumber):
