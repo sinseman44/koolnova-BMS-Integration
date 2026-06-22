@@ -3,7 +3,7 @@
 ![simulator](../png/koolnova-simulator.png)
 
 ```
-usage: koolnova_simulator.py [-h] [--log {critical,error,warning,info,debug}] [--config CONFIG] [--profile {v1,v2}]
+usage: koolnova_simulator.py [-h] [--log {critical,error,warning,info,debug}] [--config CONFIG] [--profile {v1,v2}] [--tui] [--faketty]
 
 Run koolnova simulator.
 
@@ -13,6 +13,8 @@ optional arguments:
                         set log level, default is info
   --config CONFIG       JSON Config path file
   --profile {v1,v2}     built-in Koolnova Modbus table profile, default is v1
+  --tui                 start a small ncurses interface to inspect and edit simulator registers
+  --faketty             create a local pseudo-terminal and use it instead of the configured serial port
 ```
 
 ## Dependencies
@@ -70,7 +72,7 @@ Important registers:
 | --------------- | -----: | ------- |
 | 40073 | 72 | Control unit model/software version. The sample value is `0x0021`; auto-detection should classify this profile as `v2`. |
 | 40075 | 74 | Active modes bitmask. The sample value is `0x007F`, enabling ventilation, cooling, heating, dehumidification, radiant floor, floor cooling and floor heating. |
-| 40076 | 75 | Temperature limits. The sample value is `0x2312`, max heating 35 C and min cooling 18 C. |
+| 40076 | 75 | Temperature limits in half-degree steps. The sample value is `0x4624`, max heating 35 C and min cooling 18 C. |
 | 40077 | 76 | Automatic changeover and humidity. The sample value is `0x2141`, heating above threshold, cooling below threshold, humidity threshold 65. |
 | 40078 | 77 | System time. The sample value is `0x0BED`, matching the vendor example Monday 15:45. |
 | 40081 | 80 | Opening angle Z9 to Z16, not global on/off. |
@@ -87,6 +89,66 @@ Koolnova-Simulator|⇒  python3 koolnova_simulator.py --log=debug --profile v2
 The v2 profile keeps zone registers 40001 to 40064 compatible with v1, but moves the system block to the v2 offsets documented by Koolnova.
 
 Use `--config path/to/file.json` to load an explicit custom simulator file instead of the built-in profile.
+
+## Interactive register editor
+
+Add `--tui` to start a small ncurses interface in the same process as the simulator:
+
+```
+python3 koolnova_simulator.py --profile v2 --tui
+```
+
+If you only want to test the interface without a real USB/RS485 adapter, add `--faketty`:
+
+```
+python3 koolnova_simulator.py --profile v2 --tui --faketty
+```
+
+The simulator creates a local pseudo-terminal and uses it instead of the serial port from `server.json` or `server-v2.json`.
+
+The interface is organized by functional groups while Home Assistant is polling the simulator:
+
+- `zones`: one editable view for zone state, mode, fan mode and target temperature.
+- `global`: global HVAC state and global HVAC mode.
+- `engines` / `v2 airflow`: AC airflow, AC target temperature and airflow programming.
+- `communication`: v1 Modbus address and efficiency.
+- `v2 modes`: v2 global mode and available/hidden mode switches.
+- `v2 auto`: v2 automatic changeover thresholds and target modes.
+- `v2 water`: v2 water temperature limits and water/NTC temperature diagnostics.
+- `v2 advanced`: v2 pump, valve, thermostat block and electrovalve-mask settings.
+
+Each writable field is edited as a decoded value, not as an opaque raw register. Inputs are checked against the known Koolnova Modbus table bounds before the raw register is updated.
+
+### TUI screenshots
+
+Functional groups expose decoded fields instead of raw register words:
+
+![Simulator TUI zones](../png/koolnova_sim1.png)
+
+Global and mode-related controls can be changed directly:
+
+![Simulator TUI global controls](../png/koolnova_sim2.png)
+
+Koolnova v2 automatic changeover settings are grouped together:
+
+![Simulator TUI automatic changeover](../png/koolnova_sim3.png)
+
+Advanced Koolnova v2 settings keep their documented bounds visible:
+
+![Simulator TUI advanced settings](../png/koolnova_sim4.png)
+
+Keys:
+
+| Key | Action |
+| --- | ------ |
+| Up / Down | Select a register. |
+| Page Up / Page Down | Move faster through the current group. |
+| Tab | Switch functional group. |
+| `e` / Enter | Edit the selected decoded field with bounds checking. |
+| `r` | Refresh the displayed values. |
+| `q` | Quit the TUI. The Modbus simulator keeps running. |
+
+Edits are written to simulator offsets through the same context used by Modbus writes. This means the correlated-register behavior still applies. For example, editing the v2 global HVAC mode field (`40110`) updates the registered zone mode nibbles.
 
 ## Correlated registers
 
