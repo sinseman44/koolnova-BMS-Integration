@@ -115,7 +115,7 @@ The interface is organized by functional groups while Home Assistant is polling 
 - `v2 modes`: v2 global mode and available/hidden mode switches.
 - `v2 auto`: v2 automatic changeover thresholds and target modes.
 - `v2 water`: v2 water temperature limits and water/NTC temperature diagnostics.
-- `v2 advanced`: v2 pump, valve, thermostat block and electrovalve-mask settings.
+- `v2 advanced`: v2 pump, valve, thermostat block, per-zone opening angle and electrovalve-mask settings.
 
 Each writable field is edited as a decoded value, not as an opaque raw register. Inputs are checked against the known Koolnova Modbus table bounds before the raw register is updated.
 

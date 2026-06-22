@@ -5,7 +5,7 @@
             "port": "/dev/ttyUSB0",
             "stopbits": 1,
             "bytesize": 8,
-            "parity": "N",
+            "parity": "E",
             "baudrate": 9600,
             "timeout": 3,
             "reconnect_delay": 2,

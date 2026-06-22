@@ -1257,6 +1257,7 @@ class FriendlyRegisterTui:
             self._nibble_field("v2 advanced", "Thermostat block level", 87, 0, 0x0F, {i: str(i) for i in range(16)}),
         ]
         for zone_index in range(16):
+            fields.append(self._v2_opening_angle_field(zone_index))
             fields.append(self._bit_field(
                 "v2 advanced",
                 "Z{} electrovalve enabled".format(zone_index + 1),
@@ -1265,6 +1266,39 @@ class FriendlyRegisterTui:
                 {0: "disabled", 1: "enabled"},
             ))
         return fields
+
+    def _v2_opening_angle_field(self, zone_index: int) -> TuiField:
+        """Build one v2 opening-angle field for a simulated zone."""
+        angle_by_code = {
+            0: "45",
+            1: "60",
+            2: "75",
+            3: "90",
+        }
+        code_by_angle = {
+            int(angle): code
+            for code, angle in angle_by_code.items()
+        }
+        address = 79 if zone_index < 8 else 80
+        label = "Z{} opening angle".format(zone_index + 1)
+
+        def read(addr=address, target_zone=zone_index):
+            raw = self._context.read_holding_register(addr)
+            lsb = raw & 0xFF
+            angle_code = (lsb >> 4) & 0x0F
+            register_zone = lsb & 0x0F
+            if register_zone != target_zone:
+                return "not selected (Z{})".format(register_zone + 1)
+            return "{} ({})".format(angle_by_code.get(angle_code, "unknown"), angle_code)
+
+        def write(value_text, addr=address, target_zone=zone_index):
+            angle = self._parse_int(value_text)
+            if angle not in code_by_angle:
+                raise ValueError("{} must be one of 45, 60, 75, 90.".format(label))
+            raw = ((code_by_angle[angle] & 0x0F) << 4) | (target_zone & 0x0F)
+            self._context.write_holding_register(addr, raw, 6)
+
+        return TuiField("v2 advanced", label, address, read, write, "45, 60, 75, 90")
 
     def _choice_field(self, group: str, label: str, address: int, choices: dict[int, str]) -> TuiField:
         """Build a whole-register choice field."""
