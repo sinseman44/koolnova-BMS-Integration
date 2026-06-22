@@ -58,12 +58,12 @@ def _build_v2_number_entities(coordinator: KoolnovaCoordinator,
                                                 "max_heating_limit",
                                                 "V2 maximum heating limit",
                                                 0,
-                                                255))
+                                                127.5))
     entities.append(V2TemperatureLimitNumber(coordinator, device,
                                                 "min_cooling_limit",
                                                 "V2 minimum cooling limit",
                                                 0,
-                                                255))
+                                                127.5))
     entities.append(V2AutoChangeoverHumidityNumber(coordinator, device,
                                                     "humidity_relay_threshold",
                                                     "V2 auto changeover humidity relay threshold",
@@ -149,9 +149,10 @@ class V2RegisterNumber(CoordinatorEntity, NumberEntity):
                     register_key:str,
                     field:str,
                     name:str,
-                    min_value:int,
-                    max_value:int,
+                    min_value:float,
+                    max_value:float,
                     unit:str | None = UnitOfTemperature.CELSIUS,
+                    step:float = 1,
                     ) -> None:
         """Class constructor."""
         super().__init__(coordinator)
@@ -164,6 +165,7 @@ class V2RegisterNumber(CoordinatorEntity, NumberEntity):
         self._attr_native_min_value = min_value
         self._attr_native_max_value = max_value
         self._attr_native_unit_of_measurement = unit
+        self._attr_native_step = step
 
     def _register_value(self) -> dict:
         """Return the current decoded register value from coordinator data."""
@@ -198,12 +200,12 @@ class V2TemperatureLimitNumber(V2RegisterNumber):
                     device: Koolnova,
                     field:str,
                     name:str,
-                    min_value:int,
-                    max_value:int,
+                    min_value:float,
+                    max_value:float,
                     ) -> None:
         """Class constructor."""
         super().__init__(coordinator, device, "40076_temperature_limits", field,
-                            name, min_value, max_value, UnitOfTemperature.CELSIUS)
+                            name, min_value, max_value, UnitOfTemperature.CELSIUS, 0.5)
 
     async def async_set_native_value(self,
                                         value: float,
@@ -213,9 +215,9 @@ class V2TemperatureLimitNumber(V2RegisterNumber):
         max_heating_limit = register["max_heating_limit"]
         min_cooling_limit = register["min_cooling_limit"]
         if self._field == "max_heating_limit":
-            max_heating_limit = int(value)
+            max_heating_limit = value
         else:
-            min_cooling_limit = int(value)
+            min_cooling_limit = value
         await self._device.async_set_v2_temperature_limits(max_heating_limit, min_cooling_limit)
         await self.coordinator.async_request_refresh()
 

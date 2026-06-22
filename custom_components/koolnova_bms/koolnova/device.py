@@ -852,8 +852,8 @@ class Koolnova:
         )
 
     async def async_set_v2_temperature_limits(self,
-                                                max_heating_limit:int,
-                                                min_cooling_limit:int,
+                                                max_heating_limit:float,
+                                                min_cooling_limit:float,
                                                 ) -> dict:
         ''' Set Koolnova v2 temperature limits '''
         return await self._async_write_v2_register(

@@ -289,6 +289,7 @@ Some options are still numeric because the public Modbus table documents the enc
 The `number` platform is used for numeric configuration values. Koolnova 2.0 adds the following advanced number entities:
 
 - Heating and cooling temperature limits.
+  - Koolnova v2 register `40076` stores these limits in half-degree steps.
 - Automatic changeover water thresholds.
 - Automatic changeover humidity relay threshold.
 - Pump delay.

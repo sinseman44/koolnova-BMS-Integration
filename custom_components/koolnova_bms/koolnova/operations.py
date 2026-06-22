@@ -165,6 +165,15 @@ class Operations:
             raise ValueError("{} must be between {} and {}".format(name, minimum, maximum))
         return value
 
+    @staticmethod
+    def __validated_half_degree_raw(name:str, value:float) -> int:
+        ''' Validate a Celsius value encoded as half-degree Modbus steps. '''
+        raw = float(value) * 2
+        rounded_raw = round(raw)
+        if abs(raw - rounded_raw) > 0.000001:
+            raise ValueError("{} must use 0.5°C steps".format(name))
+        return Operations.__validated_int(name, rounded_raw, 0x00, 0xFF)
+
     @property
     def supports_efficiency(self) -> bool:
         """Return whether the selected register map supports efficiency."""
@@ -305,23 +314,28 @@ class Operations:
 
         msb = (reg >> 8) & 0xFF
         lsb = reg & 0xFF
-        # The PDF does not document a /2 conversion here, unlike zone temperatures.
         return ret, {
             "raw": reg,
             "msb": msb,
             "lsb": lsb,
-            "max_heating_limit": msb,
-            "min_cooling_limit": lsb,
+            "max_heating_limit": msb / 2,
+            "min_cooling_limit": lsb / 2,
         }
 
     async def async_set_v2_temperature_limits(self,
-                                                max_heating_limit:int,
-                                                min_cooling_limit:int,
+                                                max_heating_limit:float,
+                                                min_cooling_limit:float,
                                                 ) -> bool:
         ''' write 40076: temperature limits '''
-        max_heating_limit = Operations.__validated_int("max_heating_limit", max_heating_limit, 0x00, 0xFF)
-        min_cooling_limit = Operations.__validated_int("min_cooling_limit", min_cooling_limit, 0x00, 0xFF)
-        val = (max_heating_limit << 8) | min_cooling_limit
+        max_heating_limit_raw = Operations.__validated_half_degree_raw(
+            "max_heating_limit",
+            max_heating_limit,
+        )
+        min_cooling_limit_raw = Operations.__validated_half_degree_raw(
+            "min_cooling_limit",
+            min_cooling_limit,
+        )
+        val = (max_heating_limit_raw << 8) | min_cooling_limit_raw
         ret = await self.__async_write_register(reg = const.REG_V2_TEMPERATURE_LIMITS, val = val)
         if not ret:
             _LOGGER.error('Error writing v2 temperature limits')
