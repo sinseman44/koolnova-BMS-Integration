@@ -28,7 +28,6 @@ from .coordinator import KoolnovaCoordinator
 from .koolnova.device import (
     Koolnova,
     Engine,
-    Area,
 )
 
 from .koolnova.const import (
@@ -103,11 +102,6 @@ def _build_v2_select_entities(coordinator: KoolnovaCoordinator,
         V2ExternalInputSelect(coordinator, device, "din1_function", "V2 DIN1 function"),
         V2ExternalInputSelect(coordinator, device, "din2_function", "V2 DIN2 function"),
     ]
-    for area in device.areas:
-        if area.id_zone < 1 or area.id_zone > 16:
-            continue
-        entities.append(V2OpeningAngleAreaSelect(coordinator, device, area))
-
     entities.extend([
         V2ThermostatBlockSelect(coordinator, device),
         V2MixingValveSafetyFactorSelect(coordinator, device),
@@ -332,173 +326,6 @@ class V2ExternalInputSelect(V2RegisterSelect):
         await self._device.async_set_v2_external_inputs(
             din2_function,
             din1_function,
-        )
-        await self.coordinator.async_request_refresh()
-
-class V2OpeningAngleZoneSelect(V2RegisterSelect):
-    """Select component for the target area field in registers 40080 and 40081."""
-
-    def __init__(self,
-                    coordinator: KoolnovaCoordinator,
-                    device: Koolnova,
-                    register_key:str,
-                    name:str,
-                    zone_indexes:range,
-                    setter,
-                    ) -> None:
-        super().__init__(
-            coordinator,
-            device,
-            register_key,
-            name,
-            f"{register_key}-zone-index",
-        )
-        self._setter = setter
-        self._options_by_zone_index = self._area_options_by_zone_index(
-            device.areas,
-            zone_indexes,
-        )
-        self._zone_index_by_option = {
-            option: zone_index
-            for zone_index, option in self._options_by_zone_index.items()
-        }
-        self._attr_options = list(self._options_by_zone_index.values())
-        self._attr_icon = "mdi:map-marker-radius"
-
-    @staticmethod
-    def _area_options_by_zone_index(areas:list[Area],
-                                    zone_indexes:range,
-                                    ) -> dict[int, str]:
-        """Return Home Assistant options keyed by the Modbus zone index."""
-        areas_by_zone_id = {
-            area.id_zone: area
-            for area in areas
-        }
-        options = {}
-        for zone_index in zone_indexes:
-            zone_id = zone_index + 1
-            area = areas_by_zone_id.get(zone_id)
-            if area is None or not area.name:
-                options[zone_index] = f"Z{zone_id}"
-            else:
-                options[zone_index] = f"Z{zone_id} - {area.name}"
-        return options
-
-    @property
-    def current_option(self) -> str | None:
-        """Return the selected target area."""
-        value = self._register_value().get("zone_index")
-        return self._options_by_zone_index.get(value)
-
-    async def async_select_option(self, option: str) -> None:
-        """Change the selected target area."""
-        if option not in self._zone_index_by_option:
-            raise ValueError(f"Invalid target area option: {option}")
-        await self._setter(
-            self._required_register_value("angle_code"),
-            self._zone_index_by_option[option],
-        )
-        await self.coordinator.async_request_refresh()
-
-class V2OpeningAngleValueSelect(V2RegisterSelect):
-    """Select component for the opening angle field in registers 40080 and 40081."""
-
-    _ANGLE_CODES = {
-        "45": 0x00,
-        "60": 0x01,
-        "75": 0x02,
-        "90": 0x03,
-    }
-    _ANGLE_BY_CODE = {value: key for key, value in _ANGLE_CODES.items()}
-
-    def __init__(self,
-                    coordinator: KoolnovaCoordinator,
-                    device: Koolnova,
-                    register_key:str,
-                    name:str,
-                    setter,
-                    ) -> None:
-        super().__init__(
-            coordinator,
-            device,
-            register_key,
-            name,
-            f"{register_key}-angle",
-        )
-        self._setter = setter
-        self._attr_options = list(self._ANGLE_CODES)
-        self._attr_icon = "mdi:angle-acute"
-
-    @property
-    def current_option(self) -> str | None:
-        """Return the selected opening angle."""
-        value = self._register_value().get("angle_code")
-        return self._ANGLE_BY_CODE.get(value)
-
-    async def async_select_option(self, option: str) -> None:
-        """Change the selected opening angle."""
-        if option not in self._ANGLE_CODES:
-            raise ValueError(f"Invalid opening angle option: {option}")
-        await self._setter(
-            self._ANGLE_CODES[option],
-            self._required_register_value("zone_index"),
-        )
-        await self.coordinator.async_request_refresh()
-
-class V2OpeningAngleAreaSelect(V2RegisterSelect):
-    """Select component to set one configured zone opening angle directly."""
-
-    _ANGLE_CODES = V2OpeningAngleValueSelect._ANGLE_CODES
-    _ANGLE_BY_CODE = V2OpeningAngleValueSelect._ANGLE_BY_CODE
-
-    def __init__(self,
-                    coordinator: KoolnovaCoordinator,
-                    device: Koolnova,
-                    area: Area,
-                    ) -> None:
-        self._area = area
-        self._zone_index = area.id_zone - 1
-        self._setter = (
-            device.async_set_v2_opening_angle_z1_z8
-            if self._zone_index < 8
-            else device.async_set_v2_opening_angle_z9_z16
-        )
-        register_key = (
-            "40080_opening_angle_z1_z8"
-            if self._zone_index < 8
-            else "40081_opening_angle_z9_z16"
-        )
-        super().__init__(
-            coordinator,
-            device,
-            register_key,
-            f"V2 {self._area_label()} opening angle",
-            f"{register_key}-z{area.id_zone}-angle",
-        )
-        self._attr_options = list(self._ANGLE_CODES)
-        self._attr_icon = "mdi:angle-acute"
-
-    def _area_label(self) -> str:
-        """Return a user-facing zone label."""
-        if self._area.name:
-            return f"Z{self._area.id_zone} - {self._area.name}"
-        return f"Z{self._area.id_zone}"
-
-    @property
-    def current_option(self) -> str | None:
-        """Return the selected angle when the shared register targets this zone."""
-        register_value = self._register_value()
-        if register_value.get("zone_index") != self._zone_index:
-            return None
-        return self._ANGLE_BY_CODE.get(register_value.get("angle_code"))
-
-    async def async_select_option(self, option: str) -> None:
-        """Change this configured zone opening angle."""
-        if option not in self._ANGLE_CODES:
-            raise ValueError(f"Invalid opening angle option: {option}")
-        await self._setter(
-            self._ANGLE_CODES[option],
-            self._zone_index,
         )
         await self.coordinator.async_request_refresh()
 

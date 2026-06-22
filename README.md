@@ -277,12 +277,28 @@ When Koolnova 2.0 is selected, the integration also exposes advanced configurati
   - mode to apply above the heating water threshold
   - mode to apply below the cooling water threshold
 - DIN1 and DIN2 external input function codes.
-- Opening angle per configured zone.
 - Thermostat block level.
 - Mixing valve safety factor.
 - Mixing valve cooling and heating modes.
 
 Some options are still numeric because the public Modbus table documents the encoding but not always the user-facing meaning.
+
+### Koolnova 2.0 advanced services
+
+The integration provides advanced services for the Koolnova v2 opening-angle command registers:
+
+- `koolnova_bms.set_v2_opening_angle`: send the opening-angle command for one zone.
+- `koolnova_bms.get_v2_last_opening_angle`: return the last targeted zone and angle command currently stored in `40080` and `40081`.
+
+These are exposed as services instead of per-zone state entities because the Koolnova v2 Modbus table does not provide a persistent angle value for each zone. Registers `40080` and `40081` only store the last targeted zone and angle command for zones Z1-Z8 and Z9-Z16.
+
+Service fields:
+
+- `zone_id`: Koolnova zone number, from 1 to 16.
+- `angle`: opening angle, one of 45, 60, 75 or 90.
+- `entry_id`: optional Home Assistant config entry ID, required only when multiple Koolnova v2 controllers are loaded.
+
+For `get_v2_last_opening_angle`, `zone_id` is optional. When provided, the response indicates whether the last command stored for that register block currently targets that zone.
 
 ## Number
 

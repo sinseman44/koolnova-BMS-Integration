@@ -26,6 +26,13 @@ PLATFORMS: list[Platform] = [Platform.SENSOR,
                                 Platform.SWITCH,
                                 Platform.CLIMATE]
 
+SERVICE_SET_V2_OPENING_ANGLE = "set_v2_opening_angle"
+SERVICE_GET_V2_LAST_OPENING_ANGLE = "get_v2_last_opening_angle"
+
+SERVICE_FIELD_ENTRY_ID = "entry_id"
+SERVICE_FIELD_ZONE_ID = "zone_id"
+SERVICE_FIELD_ANGLE = "angle"
+
 CONF_NAME = "koolnova-BMS-Integration"
 CONF_DEVICE_ID = "device_id"
 

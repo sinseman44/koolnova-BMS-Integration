@@ -1,0 +1,50 @@
+set_v2_opening_angle:
+  name: Set Koolnova v2 opening angle
+  description: Send the advanced Koolnova v2 opening-angle command for one zone. The Modbus register stores the last targeted zone and angle only, not a persistent per-zone table.
+  fields:
+    entry_id:
+      name: Config entry ID
+      description: Optional Home Assistant config entry ID. Required when multiple Koolnova v2 controllers are loaded.
+      required: false
+      selector:
+        text:
+    zone_id:
+      name: Zone ID
+      description: Koolnova zone number to target.
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 16
+          mode: box
+    angle:
+      name: Opening angle
+      description: Opening angle to send for the selected zone.
+      required: true
+      selector:
+        select:
+          options:
+            - "45"
+            - "60"
+            - "75"
+            - "90"
+
+get_v2_last_opening_angle:
+  name: Get last Koolnova v2 opening angle command
+  description: Return the last targeted opening-angle command stored in Koolnova v2 registers 40080 and 40081. This does not read a persistent per-zone angle table.
+  fields:
+    entry_id:
+      name: Config entry ID
+      description: Optional Home Assistant config entry ID. Required when multiple Koolnova v2 controllers are loaded.
+      required: false
+      selector:
+        text:
+    zone_id:
+      name: Zone ID
+      description: Optional Koolnova zone number. When provided, the response indicates whether the last command for that register block targets this zone.
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 16
+          mode: box

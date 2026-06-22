@@ -115,9 +115,11 @@ The interface is organized by functional groups while Home Assistant is polling 
 - `v2 modes`: v2 global mode and available/hidden mode switches.
 - `v2 auto`: v2 automatic changeover thresholds and target modes.
 - `v2 water`: v2 water temperature limits and water/NTC temperature diagnostics.
-- `v2 advanced`: v2 pump, valve, thermostat block, per-zone opening angle and electrovalve-mask settings.
+- `v2 advanced`: v2 pump, valve, thermostat block, last opening-angle command diagnostics and electrovalve-mask settings.
 
 Each writable field is edited as a decoded value, not as an opaque raw register. Inputs are checked against the known Koolnova Modbus table bounds before the raw register is updated.
+
+The `Z1-Z8 last opening angle` and `Z9-Z16 last opening angle` fields are read-only diagnostics. Koolnova v2 registers `40080` and `40081` store one targeted zone and angle at a time, not a persistent angle table for all zones. Use the Home Assistant `koolnova_bms.set_v2_opening_angle` service to send a new opening-angle command.
 
 ### TUI screenshots
 

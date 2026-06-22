@@ -1256,8 +1256,8 @@ class FriendlyRegisterTui:
             self._signed_byte_field("v2 advanced", "Immersion heater activation temp", 86, "lsb", -128, 127, "C"),
             self._nibble_field("v2 advanced", "Thermostat block level", 87, 0, 0x0F, {i: str(i) for i in range(16)}),
         ]
+        fields.extend(self._v2_last_opening_angle_fields())
         for zone_index in range(16):
-            fields.append(self._v2_opening_angle_field(zone_index))
             fields.append(self._bit_field(
                 "v2 advanced",
                 "Z{} electrovalve enabled".format(zone_index + 1),
@@ -1267,38 +1267,32 @@ class FriendlyRegisterTui:
             ))
         return fields
 
-    def _v2_opening_angle_field(self, zone_index: int) -> TuiField:
-        """Build one v2 opening-angle field for a simulated zone."""
+    def _v2_last_opening_angle_fields(self) -> list[TuiField]:
+        """Build read-only fields for the last v2 opening-angle commands."""
         angle_by_code = {
             0: "45",
             1: "60",
             2: "75",
             3: "90",
         }
-        code_by_angle = {
-            int(angle): code
-            for code, angle in angle_by_code.items()
-        }
-        address = 79 if zone_index < 8 else 80
-        label = "Z{} opening angle".format(zone_index + 1)
 
-        def read(addr=address, target_zone=zone_index):
+        def last_angle(addr):
             raw = self._context.read_holding_register(addr)
             lsb = raw & 0xFF
             angle_code = (lsb >> 4) & 0x0F
-            register_zone = lsb & 0x0F
-            if register_zone != target_zone:
-                return "not selected (Z{})".format(register_zone + 1)
             return "{} ({})".format(angle_by_code.get(angle_code, "unknown"), angle_code)
 
-        def write(value_text, addr=address, target_zone=zone_index):
-            angle = self._parse_int(value_text)
-            if angle not in code_by_angle:
-                raise ValueError("{} must be one of 45, 60, 75, 90.".format(label))
-            raw = ((code_by_angle[angle] & 0x0F) << 4) | (target_zone & 0x0F)
-            self._context.write_holding_register(addr, raw, 6)
+        def last_zone(addr):
+            raw = self._context.read_holding_register(addr)
+            zone_index = raw & 0x0F
+            return "Z{} ({})".format(zone_index + 1, zone_index)
 
-        return TuiField("v2 advanced", label, address, read, write, "45, 60, 75, 90")
+        return [
+            TuiField("v2 advanced", "Z1-Z8 last opening angle", 79, lambda: last_angle(79), None, "read-only"),
+            TuiField("v2 advanced", "Z1-Z8 last opening angle zone", 79, lambda: last_zone(79), None, "read-only"),
+            TuiField("v2 advanced", "Z9-Z16 last opening angle", 80, lambda: last_angle(80), None, "read-only"),
+            TuiField("v2 advanced", "Z9-Z16 last opening angle zone", 80, lambda: last_zone(80), None, "read-only"),
+        ]
 
     def _choice_field(self, group: str, label: str, address: int, choices: dict[int, str]) -> TuiField:
         """Build a whole-register choice field."""
