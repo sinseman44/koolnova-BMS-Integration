@@ -536,7 +536,7 @@ class Operations:
                 0x03: 90,
             }.get(angle_code),
             "zone_index": zone_index,
-            "zone_id": zone_index + 1,
+            "zone_id": zone_index + 9,
         }
 
     async def async_set_v2_opening_angle_z9_z16(self,
@@ -545,7 +545,7 @@ class Operations:
                                                 ) -> bool:
         ''' write 40081: opening angle for zones Z9 to Z16 '''
         angle_code = Operations.__validated_int("angle_code", angle_code, 0x00, 0x03)
-        zone_index = Operations.__validated_int("zone_index", zone_index, 8, 15)
+        zone_index = Operations.__validated_int("zone_index", zone_index, 8, 15) - 8
         val = ((angle_code << 4) | zone_index)
         ret = await self.__async_write_register(reg = const.REG_V2_OPENING_ANGLE_Z9_Z16, val = val)
         if not ret:

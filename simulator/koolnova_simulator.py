@@ -1282,16 +1282,16 @@ class FriendlyRegisterTui:
             angle_code = (lsb >> 4) & 0x0F
             return "{} ({})".format(angle_by_code.get(angle_code, "unknown"), angle_code)
 
-        def last_zone(addr):
+        def last_zone(addr, first_zone_id):
             raw = self._context.read_holding_register(addr)
             zone_index = raw & 0x0F
-            return "Z{} ({})".format(zone_index + 1, zone_index)
+            return "Z{} ({})".format(first_zone_id + zone_index, zone_index)
 
         return [
             TuiField("v2 advanced", "Z1-Z8 last opening angle", 79, lambda: last_angle(79), None, "read-only"),
-            TuiField("v2 advanced", "Z1-Z8 last opening angle zone", 79, lambda: last_zone(79), None, "read-only"),
+            TuiField("v2 advanced", "Z1-Z8 last opening angle zone", 79, lambda: last_zone(79, 1), None, "read-only"),
             TuiField("v2 advanced", "Z9-Z16 last opening angle", 80, lambda: last_angle(80), None, "read-only"),
-            TuiField("v2 advanced", "Z9-Z16 last opening angle zone", 80, lambda: last_zone(80), None, "read-only"),
+            TuiField("v2 advanced", "Z9-Z16 last opening angle zone", 80, lambda: last_zone(80, 9), None, "read-only"),
         ]
 
     def _choice_field(self, group: str, label: str, address: int, choices: dict[int, str]) -> TuiField:

@@ -291,6 +291,7 @@ The integration provides advanced services for the Koolnova v2 opening-angle com
 - `koolnova_bms.get_v2_last_opening_angle`: return the last targeted zone and angle command currently stored in `40080` and `40081`.
 
 These are exposed as services instead of per-zone state entities because the Koolnova v2 Modbus table does not provide a persistent angle value for each zone. Registers `40080` and `40081` only store the last targeted zone and angle command for zones Z1-Z8 and Z9-Z16.
+For `40081`, the target-zone nibble is interpreted relative to the Z9-Z16 block, so nibble `3` represents Z12.
 
 Service fields:
 
