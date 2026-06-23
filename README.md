@@ -235,6 +235,8 @@ The following attributes are available for diagnostic `sensor` platform entities
 
 When the Koolnova 2.0 table is selected, additional diagnostic sensors are created from the v2 register table:
 
+![koolnova_diag_v2](png/koolnova_diag_v2.png)
+
 - Control unit model/version register.
 - System time diagnostic fields.
 - Floor water temperature.
@@ -245,6 +247,10 @@ When the Koolnova 2.0 table is selected, additional diagnostic sensors are creat
 - Connected and active volume for AC1 to AC4.
 - Requested temperature average for AC1 to AC4.
 - Raw/reserved diagnostic values that are not safe to expose as user controls yet.
+
+Some advanced or noisy diagnostic entities are disabled by default and can be enabled from the Home Assistant entity registry when needed.
+
+![koolnova_diag_v2_disabled](png/koolnova_diag_v2_disabled.png)
 
 ## Select
 
@@ -285,6 +291,8 @@ When Koolnova 2.0 is selected, the integration also exposes advanced configurati
 
 Some options are still numeric because the public Modbus table documents the encoding but not always the user-facing meaning.
 
+![koolnova_conf_v2_1](png/koolnova_conf_v2_1.png)
+
 ## Number
 
 The `number` platform is used for numeric configuration values. Koolnova 2.0 adds the following advanced number entities:
@@ -299,6 +307,8 @@ The `number` platform is used for numeric configuration values. Koolnova 2.0 add
 - Mixing valve ambient temperature limits.
 - Mixing valve water temperature limits.
 - Mixing valve fixed cooling/heating supply temperatures.
+
+![koolnova_conf_v2_2](png/koolnova_conf_v2_2.png)
 
 ### Koolnova 2.0 automatic changeover
 
@@ -334,7 +344,12 @@ When Koolnova 2.0 is selected, the integration also exposes:
   - radiant floor heating
 - Electrovalve enable switches for each configured zone.
 
+> [!NOTE]
+> The number of `V2 Zx - Area X electrovalve enabled` entities depends on the number of zones configured during the integration setup.
+
 These entities write advanced Koolnova 2.0 configuration registers. Use them only if you understand the corresponding controller behavior.
+
+![koolnova_conf_v2_3](png/koolnova_conf_v2_3.png)
 
 ## Koolnova 2.0 advanced services
 
