@@ -160,6 +160,8 @@ Adapt the fields according to your own configuration.<br />
 
 During setup, the integration asks which Koolnova Modbus register table must be used.
 
+![HA_version_config](png/koolnova_config_version.png)
+
 * `Auto detect`: the integration reads a common register and tries to detect if the controller uses the Koolnova 1.0 or Koolnova 2.0 table.
 * `Koolnova 1.0`: uses the original register table.
 * `Koolnova 2.0`: uses the moved system registers and enables the Koolnova 2.0 diagnostic and advanced configuration entities.
