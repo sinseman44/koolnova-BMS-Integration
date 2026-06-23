@@ -172,7 +172,7 @@
                 {"addr": 80, "value": 13107, "action": null},
                 {"addr": 81, "value": 375, "action": "random", "parameters": {"minval": 300, "maxval": 450}},
                 {"addr": 82, "value": 65433, "action": null},
-                {"addr": 83, "value": 65433, "action": null},
+                {"addr": 83, "value": 65501, "action": null},
                 {"addr": 84, "value": 195, "action": null},
                 {"addr": 85, "value": 120, "action": null},
                 {"addr": 86, "value": 0, "action": null},

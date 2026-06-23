@@ -77,6 +77,8 @@ Important registers:
 | 40078 | 77 | System time. The sample value is `0x0BED`, matching the vendor example Monday 15:45. |
 | 40081 | 80 | Opening angle Z9 to Z16, not global on/off. |
 | 40082 | 81 | Radiant floor water temperature in tenths of degrees, randomized from 30.0 C to 45.0 C. |
+| 40083 | 82 | Outdoor temperature in signed tenths of degrees, cycled through negative and positive samples by the simulator. |
+| 40084 | 83 | Auxiliary NTC temperature in signed tenths of degrees, cycled through negative and positive samples by the simulator. |
 | 40109 | 108 | Global system on/off. |
 | 40110 | 109 | Global machine mode. |
 | 40126 | 125 | MSB EFI and LSB AC3 speed. The sample value is `0x0304`, EFI 3 and AC3 speed 4. |
@@ -87,6 +89,8 @@ Koolnova-Simulator|⇒  python3 koolnova_simulator.py --log=debug --profile v2
 ```
 
 The v2 profile keeps zone registers 40001 to 40064 compatible with v1, but moves the system block to the v2 offsets documented by Koolnova.
+
+For signed temperature validation, the v2 simulator updates `40083` and `40084` every 10 seconds with int16-encoded tenths of degrees. This intentionally includes negative raw values such as `0xFF99` for `-10.3 C`, so Home Assistant decoding can be checked against two's-complement Modbus registers.
 
 Use `--config path/to/file.json` to load an explicit custom simulator file instead of the built-in profile.
 

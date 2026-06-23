@@ -48,6 +48,12 @@ PROFILE_CONFIG = {
 
 TUI_VIEWS = ("core", "zones", "system", "all")
 
+V2_SIGNED_TEMPERATURE_SAMPLES = (
+    # Values are tenths of degrees Celsius and are encoded as signed int16.
+    (82, "40083 outdoor temperature", (-103, -75, -20, 0, 84, 180, 276, 350)),
+    (83, "40084 auxiliary NTC temperature", (-35, -5, 0, 125, 220, 318, 450)),
+)
+
 V1_SYSTEM_REGISTERS = [
     (64, "40065 AC1 airflow"),
     (65, "40066 AC2 airflow"),
@@ -1506,6 +1512,36 @@ def start_tui(args: argparse.Namespace) -> None:
     thread.start()
 
 
+def signed_int16_to_register(value: int) -> int:
+    """Encode a signed int16 value as an unsigned Modbus register."""
+    if value < -0x8000 or value > 0x7FFF:
+        raise ValueError("signed int16 value out of range")
+    return value & 0xFFFF
+
+
+async def update_v2_signed_temperatures(args: argparse.Namespace) -> None:
+    """Cycle v2 signed temperature diagnostics through negative and positive values."""
+    if args.profile != "v2":
+        return
+
+    sample_index = 0
+    while True:
+        for address, label, samples in V2_SIGNED_TEMPERATURE_SAMPLES:
+            signed_value = samples[sample_index % len(samples)]
+            args.device_context.write_holding_register(
+                address,
+                signed_int16_to_register(signed_value),
+                6,
+            )
+            _logger.debug(
+                "Updated %s to %.1f C",
+                label,
+                signed_value / 10,
+            )
+        sample_index += 1
+        await asyncio.sleep(10)
+
+
 async def run_server_simulator(args:argparse.Namespace=None):
     """ Run server.
     """
@@ -1528,6 +1564,7 @@ async def main():
         _logger.error("error append ... :(")
         exit(1)
     start_tui(run_args)
+    asyncio.create_task(update_v2_signed_temperatures(run_args))
     await run_server_simulator(run_args)
 
 
