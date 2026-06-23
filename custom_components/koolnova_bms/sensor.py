@@ -66,13 +66,13 @@ def _build_v2_sensor_entities(coordinator: KoolnovaCoordinator,
     """Build sensors that only exist for the Koolnova v2 Modbus table."""
     entities = []
     entities.append(V2RegisterSensor(coordinator, device, "40073_model_version", "V2 model version", "mdi:chip"))
-    entities.append(V2RegisterFieldSensor(coordinator, device, "40078_system_time", "day_name", "V2 system day", "mdi:calendar"))
-    entities.append(V2RegisterFieldSensor(coordinator, device, "40078_system_time", "hour", "V2 system hour", "mdi:clock-time-four-outline"))
-    entities.append(V2RegisterFieldSensor(coordinator, device, "40078_system_time", "minute", "V2 system minute", "mdi:clock-time-four-outline"))
+    entities.append(V2RegisterFieldSensor(coordinator, device, "40078_system_time", "day_name", "V2 system day", "mdi:calendar", enabled_default=False))
+    entities.append(V2RegisterFieldSensor(coordinator, device, "40078_system_time", "hour", "V2 system hour", "mdi:clock-time-four-outline", enabled_default=False))
+    entities.append(V2RegisterFieldSensor(coordinator, device, "40078_system_time", "minute", "V2 system minute", "mdi:clock-time-four-outline", enabled_default=False))
     entities.append(V2TemperatureSensor(coordinator, device, "40082_floor_water_temperature", "V2 floor water temperature", "mdi:thermometer-water"))
     entities.append(V2TemperatureSensor(coordinator, device, "40083_outdoor_temperature", "V2 outdoor temperature", "mdi:thermometer"))
     entities.append(V2TemperatureSensor(coordinator, device, "40084_aux_temperature", "V2 auxiliary temperature", "mdi:thermometer-probe"))
-    entities.append(V2RegisterSensor(coordinator, device, "40107_reserved", "V2 reserved 40107", "mdi:counter"))
+    entities.append(V2RegisterSensor(coordinator, device, "40107_reserved", "V2 reserved 40107", "mdi:counter", enabled_default=False))
     entities.append(V2RegisterSensor(coordinator, device, "40111_radiant_floor_demand_count", "V2 radiant floor demand count", "mdi:counter"))
     entities.append(V2RegisterSensor(coordinator, device, "40112_ac3_air_demand_count", "V2 AC3 air demand count", "mdi:counter"))
 
@@ -80,19 +80,22 @@ def _build_v2_sensor_entities(coordinator: KoolnovaCoordinator,
         entities.append(V2EngineRegisterSensor(coordinator, device, engine,
                                                 "{}_connected_volume_ac{}".format(register, engine.engine_id),
                                                 "V2 AC{} connected volume".format(engine.engine_id),
-                                                "mdi:gauge"))
+                                                "mdi:gauge",
+                                                enabled_default=False))
 
     for engine, register in zip(device.engines, (40117, 40118, 40119, 40120)):
         entities.append(V2EngineRegisterSensor(coordinator, device, engine,
                                                 "{}_active_volume_ac{}".format(register, engine.engine_id),
                                                 "V2 AC{} active volume".format(engine.engine_id),
-                                                "mdi:gauge"))
+                                                "mdi:gauge",
+                                                enabled_default=False))
 
     for engine, register in zip(device.engines, (40121, 40122, 40123, 40125)):
         entities.append(V2EngineTemperatureSensor(coordinator, device, engine,
                                                     "{}_requested_temp_avg_ac{}".format(register, engine.engine_id),
                                                     "V2 AC{} requested temperature average".format(engine.engine_id),
-                                                    "mdi:thermometer-lines"))
+                                                    "mdi:thermometer-lines",
+                                                    enabled_default=False))
 
     entities.append(V2RegisterSensor(coordinator, device, "40126_efficiency_ac3_speed", "V2 efficiency AC3 speed", "mdi:counter"))
     return entities
@@ -109,13 +112,14 @@ class V2RegisterSensor(CoordinatorEntity, SensorEntity):
                     key:str,
                     name:str,
                     icon:str,
+                    enabled_default: bool = True,
                     ) -> None:
         """Class constructor."""
         super().__init__(coordinator)
         self._device = device
         self._key = key
         self._attr_name = f"{self._device.name} {name}"
-        self._attr_entity_registry_enabled_default = True
+        self._attr_entity_registry_enabled_default = enabled_default
         self._attr_device_info = self._device.device_info
         self._attr_unique_id = f"{DOMAIN}-{self._device.name}-{self._key}-sensor"
         self._attr_icon = icon
@@ -157,10 +161,11 @@ class V2RegisterFieldSensor(V2RegisterSensor):
                     field:str,
                     name:str,
                     icon:str,
+                    enabled_default: bool = True,
                     ) -> None:
         """Class constructor."""
         self._field = field
-        super().__init__(coordinator, device, key, name, icon)
+        super().__init__(coordinator, device, key, name, icon, enabled_default)
         self._attr_unique_id = f"{DOMAIN}-{self._device.name}-{self._key}-{self._field}-sensor"
 
     def _value_from_registers(self,
@@ -183,10 +188,11 @@ class V2EngineRegisterSensor(V2RegisterSensor):
                     key:str,
                     name:str,
                     icon:str,
+                    enabled_default: bool = True,
                     ) -> None:
         """Class constructor."""
         self._engine = engine
-        super().__init__(coordinator, device, key, name, icon)
+        super().__init__(coordinator, device, key, name, icon, enabled_default)
         self._attr_unique_id = f"{DOMAIN}-{self._device.name}-Engine-AC{self._engine.engine_id}-{self._key}-sensor"
 
 class V2EngineTemperatureSensor(V2EngineRegisterSensor):

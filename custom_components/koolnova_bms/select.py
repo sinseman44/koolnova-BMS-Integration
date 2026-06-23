@@ -99,8 +99,8 @@ def _build_v2_select_entities(coordinator: KoolnovaCoordinator,
                 "radiant_floor_cooling_and_cooling": 0x05,
             },
         ),
-        V2ExternalInputSelect(coordinator, device, "din1_function", "V2 DIN1 function"),
-        V2ExternalInputSelect(coordinator, device, "din2_function", "V2 DIN2 function"),
+        V2ExternalInputSelect(coordinator, device, "din1_function", "V2 DIN1 function", enabled_default=False),
+        V2ExternalInputSelect(coordinator, device, "din2_function", "V2 DIN2 function", enabled_default=False),
     ]
     entities.extend([
         V2ThermostatBlockSelect(coordinator, device),
@@ -188,11 +188,13 @@ class V2RegisterSelect(CoordinatorEntity, SelectEntity):
                     register_key:str,
                     name:str,
                     unique_suffix:str,
+                    enabled_default: bool = True,
                     ) -> None:
         super().__init__(coordinator)
         self._device = device
         self._register_key = register_key
         self._attr_name = f"{self._device.name} {name}"
+        self._attr_entity_registry_enabled_default = enabled_default
         self._attr_device_info = self._device.device_info
         self._attr_unique_id = f"{DOMAIN}-{self._device.name}-{unique_suffix}-select"
 
@@ -295,6 +297,7 @@ class V2ExternalInputSelect(V2RegisterSelect):
                     device: Koolnova,
                     field:str,
                     name:str,
+                    enabled_default: bool = True,
                     ) -> None:
         super().__init__(
             coordinator,
@@ -302,6 +305,7 @@ class V2ExternalInputSelect(V2RegisterSelect):
             "40079_external_inputs",
             name,
             f"40079-{field}",
+            enabled_default,
         )
         self._field = field
         self._attr_options = [str(value) for value in range(16)]
