@@ -285,24 +285,6 @@ When Koolnova 2.0 is selected, the integration also exposes advanced configurati
 
 Some options are still numeric because the public Modbus table documents the encoding but not always the user-facing meaning.
 
-### Koolnova 2.0 advanced services
-
-The integration provides advanced services for the Koolnova v2 opening-angle command registers:
-
-- `koolnova_bms.set_v2_opening_angle`: send the opening-angle command for one zone.
-- `koolnova_bms.get_v2_last_opening_angle`: return the last targeted zone and angle command currently stored in `40080` and `40081`.
-
-These are exposed as services instead of per-zone state entities because the Koolnova v2 Modbus table does not provide a persistent angle value for each zone. Registers `40080` and `40081` only store the last targeted zone and angle command for zones Z1-Z8 and Z9-Z16.
-For `40081`, the target-zone nibble is interpreted relative to the Z9-Z16 block, so nibble `3` represents Z12.
-
-Service fields:
-
-- `zone_id`: Koolnova zone number, from 1 to 16.
-- `angle`: opening angle, one of 45, 60, 75 or 90.
-- `entry_id`: optional Home Assistant config entry ID, required only when multiple Koolnova v2 controllers are loaded.
-
-For `get_v2_last_opening_angle`, `zone_id` is optional. When provided, the response indicates whether the last command stored for that register block currently targets that zone.
-
 ## Number
 
 The `number` platform is used for numeric configuration values. Koolnova 2.0 adds the following advanced number entities:
@@ -353,6 +335,23 @@ When Koolnova 2.0 is selected, the integration also exposes:
 - Electrovalve enable switches for each configured zone.
 
 These entities write advanced Koolnova 2.0 configuration registers. Use them only if you understand the corresponding controller behavior.
+
+## Koolnova 2.0 advanced services
+
+The integration provides advanced services for the Koolnova v2 opening-angle command registers:
+
+- `koolnova_bms.set_v2_opening_angle`: send the opening-angle command for one zone.
+- `koolnova_bms.get_v2_last_opening_angle`: return the last targeted zone and angle command.
+
+These are exposed as services instead of per-zone state entities because the Koolnova v2 Modbus table does not provide a persistent angle value for each zone.
+
+Service fields:
+
+- `zone_id`: Koolnova zone number, from 1 to 16.
+- `angle`: opening angle, one of 45, 60, 75 or 90.
+- `entry_id`: optional Home Assistant config entry ID, required only when multiple Koolnova v2 controllers are loaded.
+
+For `get_v2_last_opening_angle`, `zone_id` is optional. When provided, the response indicates whether the last command stored for that register block currently targets that zone.
 
 # Debugging
 
