@@ -12,7 +12,7 @@ _Disclaimer : This is not a Koolnova official integration and use at your own ri
 **koolnova-BMS-Integration** is an integration of koolnova system into Home Assistant using BMS (Building Management System) and Modbus RTU (RS485) protocol.
 
 > [!WARNING]
-> Koolnova 1.0 and Koolnova 2.0 use different Modbus register tables. This integration supports Koolnova 1.0 and includes Koolnova 2.0 support with a version selector and automatic detection. Koolnova 2.0 advanced registers are exposed progressively and should still be considered advanced configuration until validated on more real installations.
+> Koolnova 1.0 and Koolnova 2.0 do not expose all system features in the same way. This integration supports both versions with a version selector and automatic detection. Koolnova 2.0 advanced entities are exposed progressively and should still be considered advanced configuration until validated on more real installations.
 
 ## Building Management System (BMS)
 
@@ -66,7 +66,7 @@ _In IEEE 802.11 (Wi-Fi) terminology, a station (abbreviated as STA) is a device 
 * A RS485 USB dongle (Example: DSD Tech SH-U11) for wired systems or a RS485/WIFI device (Example: Elfin EW11A or Elfin EW11-0, [example of configuration](EW11-config.md)) for wireless systems.
 * A Koolnova air conditioning system (identifier: 100-CPNR00 or 100-CPND00) with areas defined.
 * Enabling Modbus communication on the master radio thermostat (INT 49).
-* A Modbus register table version selected during setup:
+* A Koolnova system version selected during setup:
   * `Auto detect`
   * `Koolnova 1.0`
   * `Koolnova 2.0`
@@ -156,18 +156,18 @@ Adapt the fields according to your own configuration.<br />
 
 ![HA_tcp_config](png/koolnova_config_modbusTCP_infos.png)
 
-## Modbus register table version
+## Koolnova system version
 
-During setup, the integration asks which Koolnova Modbus register table must be used.
+During setup, the integration asks which Koolnova system version must be used.
 
 ![HA_version_config](png/koolnova_config_version.png)
 
-* `Auto detect`: the integration reads a common register and tries to detect if the controller uses the Koolnova 1.0 or Koolnova 2.0 table.
-* `Koolnova 1.0`: uses the original register table.
-* `Koolnova 2.0`: uses the moved system registers and enables the Koolnova 2.0 diagnostic and advanced configuration entities.
+* `Auto detect`: the integration tries to identify the controller version automatically.
+* `Koolnova 1.0`: use this when your controller is a Koolnova 1.0 system.
+* `Koolnova 2.0`: use this when your controller is a Koolnova 2.0 system. This enables additional diagnostics and advanced configuration entities.
 
 > [!IMPORTANT]
-> Do not use Koolnova 1.0 register addresses on a Koolnova 2.0 controller. Some addresses that were system commands in v1 are advanced configuration registers in v2.
+> If automatic detection does not work on your installation, choose the version that matches your Koolnova controller. Selecting the wrong version can make advanced controls behave incorrectly.
 
 ## Area installation
 
@@ -184,10 +184,11 @@ The area configuration ends with no new area.<br />
 - Local polling over Modbus RTU or Modbus TCP.
 - Config flow setup from the Home Assistant UI.
 - Multiple controller support when each controller has a unique device name and Modbus connection.
-- Koolnova 1.0 and Koolnova 2.0 Modbus table selection, with automatic detection.
+- Koolnova 1.0 and Koolnova 2.0 version selection, with automatic detection.
 - `climate` entities for configured areas.
 - `sensor`, `number`, `select` and `switch` entities for diagnostics and configuration.
-- Versioned runtime register maps so Koolnova 2.0 system commands use the correct moved addresses.
+- Advanced Koolnova 2.0 services to send and inspect zone opening-angle commands.
+- Koolnova 2.0 system controls are routed through the correct version-specific communication model.
 
 ## Climate
 
@@ -233,11 +234,11 @@ The following attributes are available for diagnostic `sensor` platform entities
 
 ### Koolnova 2.0 diagnostic sensors
 
-When the Koolnova 2.0 table is selected, additional diagnostic sensors are created from the v2 register table:
+When Koolnova 2.0 is selected, additional diagnostic sensors are created:
 
 ![koolnova_diag_v2](png/koolnova_diag_v2.png)
 
-- Control unit model/version register.
+- Control unit model/version.
 - System time diagnostic fields.
 - Floor water temperature.
 - Outdoor temperature.
@@ -266,7 +267,7 @@ The following parameters can be controlled for the `select` platform entities:
   - refreshing floor and refreshing air (need a specific hardware module, identifier: 100-MSR002)
   - heating floor and heating air (need a specific hardware module, identifier: 100-MSR002)
 
-- Global efficiency, for Koolnova tables where the efficiency register is available, defines the balance point between efficiency and speed of the area system.
+- Global efficiency, when supported by the controller, defines the balance point between efficiency and speed of the area system.
   - Lower: the set temperature is reached sooner
   - Higher: better efficiency 
 
@@ -280,7 +281,7 @@ The following parameters can be controlled for the `select` platform entities:
 
 When Koolnova 2.0 is selected, the integration also exposes advanced configuration selects:
 
-- EFI field from the v2 system parameters register.
+- EFI setting.
 - Automatic changeover target modes:
   - mode to apply above the heating water threshold
   - mode to apply below the cooling water threshold
@@ -289,7 +290,7 @@ When Koolnova 2.0 is selected, the integration also exposes advanced configurati
 - Mixing valve safety factor.
 - Mixing valve cooling and heating modes.
 
-Some options are still numeric because the public Modbus table documents the encoding but not always the user-facing meaning.
+Some options are still numeric because the public documentation does not always provide a confirmed user-facing label.
 
 ![koolnova_conf_v2_1](png/koolnova_conf_v2_1.png)
 
@@ -298,11 +299,11 @@ Some options are still numeric because the public Modbus table documents the enc
 The `number` platform is used for numeric configuration values. Koolnova 2.0 adds the following advanced number entities:
 
 - Heating and cooling temperature limits.
-  - Koolnova v2 register `40076` stores these limits in half-degree steps.
+  - These limits use 0.5 C steps.
 - Automatic changeover water thresholds.
 - Automatic changeover humidity relay threshold.
 - Pump delay.
-- Valve origin offset.
+- Valve origin adjustment.
 - Immersion heater activation delay and activation temperature.
 - Mixing valve ambient temperature limits.
 - Mixing valve water temperature limits.
@@ -312,15 +313,13 @@ The `number` platform is used for numeric configuration values. Koolnova 2.0 add
 
 ### Koolnova 2.0 automatic changeover
 
-The Koolnova 2.0 automatic changeover settings are split across two related Modbus registers:
+The Koolnova 2.0 automatic changeover settings combine water temperature thresholds with the modes to apply when those thresholds are reached:
 
-- `40089` defines the water temperature thresholds used by the automatic mode:
-  - cooling / refreshing floor threshold, used when the measured water temperature is lower than or equal to the configured value.
-  - heating / radiant floor threshold, used when the measured water temperature is higher than or equal to the configured value.
-- `40077` defines what mode the controller should apply when those `40089` thresholds are crossed:
-  - target mode above the heating water threshold.
-  - target mode below the cooling water threshold.
-  - humidity relay threshold.
+- cooling / refreshing floor threshold, used when the measured water temperature is lower than or equal to the configured value.
+- heating / radiant floor threshold, used when the measured water temperature is higher than or equal to the configured value.
+- target mode above the heating water threshold.
+- target mode below the cooling water threshold.
+- humidity relay threshold.
 
 In Home Assistant, these values are exposed as separate `select` and `number` entities, but they should be configured together. Changing only the thresholds without checking the target modes, or changing the target modes without checking the thresholds, can make the automatic mode behave unexpectedly.
 
@@ -347,18 +346,18 @@ When Koolnova 2.0 is selected, the integration also exposes:
 > [!NOTE]
 > The number of `V2 Zx - Area X electrovalve enabled` entities depends on the number of zones configured during the integration setup.
 
-These entities write advanced Koolnova 2.0 configuration registers. Use them only if you understand the corresponding controller behavior.
+These entities write advanced Koolnova 2.0 configuration values. Use them only if you understand the corresponding controller behavior.
 
 ![koolnova_conf_v2_3](png/koolnova_conf_v2_3.png)
 
 ## Koolnova 2.0 advanced services
 
-The integration provides advanced services for the Koolnova v2 opening-angle command registers:
+The integration provides advanced services for the Koolnova v2 opening-angle commands:
 
 - `koolnova_bms.set_v2_opening_angle`: send the opening-angle command for one zone.
 - `koolnova_bms.get_v2_last_opening_angle`: return the last targeted zone and angle command.
 
-These are exposed as services instead of per-zone state entities because the Koolnova v2 Modbus table does not provide a persistent angle value for each zone.
+These are exposed as services instead of per-zone state entities because the controller only reports the last opening-angle command, not a persistent angle value for each zone.
 
 Service fields:
 
@@ -366,7 +365,7 @@ Service fields:
 - `angle`: opening angle, one of 45, 60, 75 or 90.
 - `entry_id`: optional Home Assistant config entry ID, required only when multiple Koolnova v2 controllers are loaded.
 
-For `get_v2_last_opening_angle`, `zone_id` is optional. When provided, the response indicates whether the last command stored for that register block currently targets that zone.
+For `get_v2_last_opening_angle`, `zone_id` is optional. When provided, the response indicates whether the last command currently targets that zone.
 
 # Debugging
 
