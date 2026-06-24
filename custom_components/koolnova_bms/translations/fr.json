@@ -66,5 +66,22 @@
         "abort": {
             "already_configured": "Ce contrôleur Koolnova est déjà configuré"
         }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Options Koolnova BMS",
+                "description": "Modifier les paramètres de connexion Modbus RTU.",
+                "data": {
+                    "Device": "Appareil de communication RS485 Modbus"
+                }
+            }
+        },
+        "error": {
+            "cannot_connect": "Impossible de se connecter au système Koolnova"
+        },
+        "abort": {
+            "not_supported": "Les options sont disponibles uniquement pour les entrées Modbus RTU"
+        }
     }
 }

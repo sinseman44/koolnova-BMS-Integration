@@ -5,7 +5,8 @@ import voluptuous as vol
 
 from homeassistant import exceptions
 import homeassistant.helpers.config_validation as cv
-from homeassistant.config_entries import ConfigFlow
+from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
+from homeassistant.core import callback
 from homeassistant.data_entry_flow import AbortFlow, FlowResult
 from homeassistant.const import CONF_BASE
 from .const import DOMAIN, CONF_NAME
@@ -39,6 +40,33 @@ TABLE_VERSION_LABELS = {
 }
 TABLE_VERSION_OPTIONS = list(TABLE_VERSION_LABELS.values())
 
+def _create_conn_from_config(config: dict) -> Operations:
+    """Create a temporary Modbus client from config flow data/options."""
+    table_version = normalize_table_version(
+        config.get("Table_version")
+    )
+    if config["Mode"] == "Modbus RTU":
+        return Operations(mode="Modbus RTU",
+                          timeout=config["Timeout"],
+                          debug=config["Debug"],
+                          port=config["Device"],
+                          addr=config["Address"],
+                          baudrate=int(config["Baudrate"]),
+                          parity=config["Parity"][0],
+                          stopbits=config["Stopbits"],
+                          bytesize=config["Sizebyte"],
+                          table_version=table_version)
+    return Operations(mode="Modbus TCP",
+                      timeout=config["Timeout"],
+                      debug=config["Debug"],
+                      addr=config["Address"],
+                      port=config["Port"],
+                      modbus=config["Modbus"],
+                      retries=config["Retries"],
+                      reco_delay_min=config["Reconnect_delay_min"],
+                      reco_delay_max=config["Reconnect_delay_max"],
+                      table_version=table_version)
+
 class KoolnovaConfigFlow(ConfigFlow, domain=DOMAIN):
     """ La classe qui implémente le config flow notre DOMAIN. 
         Elle doit dériver de FlowHandler
@@ -62,30 +90,13 @@ class KoolnovaConfigFlow(ConfigFlow, domain=DOMAIN):
 
     def _create_conn(self) -> Operations:
         """Create a fresh temporary Modbus client from collected inputs."""
-        table_version = normalize_table_version(
-            self._user_inputs.get("Table_version")
-        )
-        if self._user_inputs["Mode"] == "Modbus RTU":
-            return Operations(mode="Modbus RTU",
-                              timeout=self._user_inputs["Timeout"],
-                              debug=self._user_inputs["Debug"],
-                              port=self._user_inputs["Device"],
-                              addr=self._user_inputs["Address"],
-                              baudrate=int(self._user_inputs["Baudrate"]),
-                              parity=self._user_inputs["Parity"][0],
-                              stopbits=self._user_inputs["Stopbits"],
-                              bytesize=self._user_inputs["Sizebyte"],
-                              table_version=table_version)
-        return Operations(mode="Modbus TCP",
-                          timeout=self._user_inputs["Timeout"],
-                          debug=self._user_inputs["Debug"],
-                          addr=self._user_inputs["Address"],
-                          port=self._user_inputs["Port"],
-                          modbus=self._user_inputs["Modbus"],
-                          retries=self._user_inputs["Retries"],
-                          reco_delay_min=self._user_inputs["Reconnect_delay_min"],
-                          reco_delay_max=self._user_inputs["Reconnect_delay_max"],
-                          table_version=table_version)
+        return _create_conn_from_config(self._user_inputs)
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
+        """Return the options flow for this integration."""
+        return KoolnovaOptionsFlow(config_entry)
 
     async def _set_unique_id_and_abort_if_configured(self) -> None:
         """Set a stable unique id for this controller and abort duplicates."""
@@ -402,3 +413,82 @@ class AreaAlreadySetError(KnownError):
 class ZoneIdError(KnownError):
     """ Error with the Zone_Id """
     error_name = "zone_id_error"
+
+class KoolnovaOptionsFlow(OptionsFlow):
+    """Options flow to update runtime connection settings."""
+
+    def __init__(self, config_entry: ConfigEntry) -> None:
+        """Initialize options flow."""
+        self._config_entry = config_entry
+        self._conn: Operations | None = None
+
+    def _disconnect_conn(self) -> None:
+        """Disconnect the temporary Modbus client used during options flow."""
+        if self._conn and self._conn.connected():
+            self._conn.disconnect()
+        self._conn = None
+
+    def _disconnect_runtime_device(self) -> None:
+        """Disconnect the currently loaded runtime device before testing options."""
+        runtime_data = self.hass.data.get(DOMAIN, {}).get(self._config_entry.entry_id)
+        if not runtime_data:
+            return
+        device = runtime_data.get("device")
+        if device and device.connected():
+            device.disconnect()
+
+    async def _reload_runtime_device(self) -> None:
+        """Reload the config entry to restore the previous runtime connection."""
+        if self._config_entry.entry_id in self.hass.data.get(DOMAIN, {}):
+            await self.hass.config_entries.async_reload(self._config_entry.entry_id)
+
+    async def async_step_init(self,
+                              user_input: dict | None = None) -> FlowResult:
+        """Manage Koolnova options."""
+        if self._config_entry.data["Mode"] != "Modbus RTU":
+            return self.async_abort(reason="not_supported")
+
+        config = {
+            **self._config_entry.data,
+            **self._config_entry.options,
+        }
+        errors = {}
+        options_form = vol.Schema(
+            {
+                vol.Required("Device", default=config["Device"]): vol.Coerce(str),
+            }
+        )
+
+        if user_input:
+            updated_config = {**config, **user_input}
+            self._disconnect_runtime_device()
+            self._conn = _create_conn_from_config(updated_config)
+            try:
+                await self._conn.async_connect()
+                if not self._conn.connected():
+                    raise CannotConnectError(reason="Client Modbus RTU not connected")
+                ret = await self._conn.async_test_communication()
+                if not ret:
+                    raise CannotConnectError(reason="Communication error")
+                self._disconnect_conn()
+                return self.async_create_entry(
+                    title="",
+                    data={
+                        **self._config_entry.options,
+                        **user_input,
+                    },
+                )
+            except CannotConnectError:
+                _LOGGER.exception("Cannot connect to koolnova system")
+                self._disconnect_conn()
+                await self._reload_runtime_device()
+                errors[CONF_BASE] = "cannot_connect"
+            except Exception:
+                self._disconnect_conn()
+                _LOGGER.exception("Options Flow generic error")
+                await self._reload_runtime_device()
+                errors[CONF_BASE] = "cannot_connect"
+
+        return self.async_show_form(step_id="init",
+                                    data_schema=options_form,
+                                    errors=errors)

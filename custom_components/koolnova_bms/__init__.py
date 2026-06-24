@@ -54,35 +54,36 @@ ANGLE_BY_CODE = {
 
 def _build_device_from_entry(entry: ConfigEntry) -> Koolnova:
     """Build a Koolnova runtime device from a config entry."""
-    debug: bool = entry.data['Debug']
-    timeout: int = entry.data['Timeout']
-    name: str = entry.data['Name']
-    table_version: str | None = entry.data.get("Table_version")
-    mode: str = entry.data['Mode']
+    config = {**entry.data, **entry.options}
+    debug: bool = config['Debug']
+    timeout: int = config['Timeout']
+    name: str = config['Name']
+    table_version: str | None = config.get("Table_version")
+    mode: str = config['Mode']
 
     if mode == 'Modbus RTU':
         return Koolnova(mode=mode,
                         name=name,
                         timeout=timeout,
                         debug=debug,
-                        port=entry.data['Device'],
-                        addr=entry.data['Address'],
-                        baudrate=entry.data['Baudrate'],
-                        parity=entry.data['Parity'][0],
-                        bytesize=entry.data['Sizebyte'],
-                        stopbits=entry.data['Stopbits'],
+                        port=config['Device'],
+                        addr=config['Address'],
+                        baudrate=config['Baudrate'],
+                        parity=config['Parity'][0],
+                        bytesize=config['Sizebyte'],
+                        stopbits=config['Stopbits'],
                         table_version=table_version)
     if mode == 'Modbus TCP':
         return Koolnova(mode=mode,
                         name=name,
                         timeout=timeout,
                         debug=debug,
-                        port=entry.data['Port'],
-                        addr=entry.data['Address'],
-                        modbus=entry.data['Modbus'],
-                        retries=entry.data['Retries'],
-                        reco_delay_min=entry.data['Reconnect_delay_min'],
-                        reco_delay_max=entry.data['Reconnect_delay_max'],
+                        port=config['Port'],
+                        addr=config['Address'],
+                        modbus=config['Modbus'],
+                        retries=config['Retries'],
+                        reco_delay_min=config['Reconnect_delay_min'],
+                        reco_delay_max=config['Reconnect_delay_max'],
                         table_version=table_version)
 
     raise ConfigEntryNotReady(f"Unsupported Koolnova Modbus mode: {mode}")
@@ -91,6 +92,10 @@ def _disconnect_device(device: Koolnova | None) -> None:
     """Disconnect a Koolnova device if it has an active Modbus client."""
     if device and device.connected():
         device.disconnect()
+
+async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Reload the config entry when options change."""
+    await hass.config_entries.async_reload(entry.entry_id)
 
 def _runtime_data_for_v2_service(hass: HomeAssistant,
                                  entry_id: str | None,
@@ -267,6 +272,7 @@ async def async_setup_entry(hass: HomeAssistant,
         raise
 
     _async_setup_services(hass)
+    entry.async_on_unload(entry.add_update_listener(_async_update_listener))
 
     return True
 

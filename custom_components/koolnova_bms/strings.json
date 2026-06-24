@@ -66,5 +66,22 @@
         "abort": {
             "already_configured": "This Koolnova controller is already configured"
         }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Koolnova BMS options",
+                "description": "Update the Modbus RTU connection settings.",
+                "data": {
+                    "Device": "Device"
+                }
+            }
+        },
+        "error": {
+            "cannot_connect": "Cannot connected to Koolnova system"
+        },
+        "abort": {
+            "not_supported": "Options are only available for Modbus RTU entries"
+        }
     }
 }

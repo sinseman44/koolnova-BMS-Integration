@@ -1,0 +1,87 @@
+{
+    "title": "Koolnova BMS",
+    "config": {
+        "flow_title": "Configuración de Koolnova BMS",
+        "step": {
+            "user": {
+                "title": "Modo de comunicación Modbus",
+                "description": "Elige el modo de comunicación según el tipo de conexión con el controlador Koolnova",
+                "data": {
+                    "Mode": "Modo"
+                }
+            },
+            "rtu": {
+                "title": "Configuración del cliente Modbus RTU",
+                "description": "Información de conexión del dispositivo Koolnova",
+                "data": {
+                    "Name": "Nombre del dispositivo",
+                    "Device": "Dispositivo de comunicación RS485 Modbus",
+                    "Address": "Dirección del dispositivo",
+                    "Baudrate": "Velocidad Modbus",
+                    "Sizebyte": "Tamaño de datos",
+                    "Parity": "Paridad",
+                    "Stopbits": "Número de bits de parada",
+                    "Timeout": "Tiempo de espera",
+                    "Debug": "Depuración"
+                }
+            },
+            "tcp": {
+                "title": "Configuración del cliente Modbus TCP",
+                "description": "Información de conexión del sistema Koolnova",
+                "data": {
+                    "Name": "Nombre del dispositivo",
+                    "Modbus": "Dirección Modbus del dispositivo",
+                    "Address": "Dirección de comunicación",
+                    "Port": "Puerto de comunicación",
+                    "Retries": "Número de intentos de reconexión",
+                    "Reconnect_delay_min": "Tiempo mínimo de reconexión",
+                    "Reconnect_delay_max": "Tiempo máximo de reconexión",
+                    "Timeout": "Tiempo de espera",
+                    "Debug": "Depuración"
+                }
+            },
+            "table_version": {
+                "title": "Versión del sistema Koolnova",
+                "description": "Selecciona la tabla de registros Modbus utilizada por el sistema Koolnova. Usa la detección automática si tienes dudas.",
+                "data": {
+                    "Table_version": "Versión de la tabla Modbus"
+                }
+            },
+            "areas": {
+                "title": "Configuración de una zona",
+                "description": "Información sobre la zona que se va a configurar",
+                "data": {
+                    "Name": "Nombre de la zona",
+                    "Area_id": "Identificador de la zona",
+                    "Other_area": "Añadir una nueva zona"
+                }
+            }
+        },
+        "error": {
+            "cannot_connect": "No se puede conectar con el sistema Koolnova",
+            "area_not_registered": "Esta zona no está registrada en el sistema Koolnova",
+            "area_already_configured": "Esta zona ya está configurada",
+            "zone_id_error": "El identificador de zona debe ser un número entre 1 y 16"
+        },
+        "abort": {
+            "already_configured": "Este controlador Koolnova ya está configurado"
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Opciones de Koolnova BMS",
+                "description": "Modifica los parámetros de conexión Modbus RTU.",
+                "data": {
+                    "Device": "Dispositivo de comunicación RS485 Modbus"
+                }
+            }
+        },
+        "error": {
+            "cannot_connect": "No se puede conectar con el sistema Koolnova"
+        },
+        "abort": {
+            "not_supported": "Las opciones solo están disponibles para entradas Modbus RTU"
+        }
+    }
+}
