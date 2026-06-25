@@ -238,6 +238,12 @@ async def async_setup_entry(hass: HomeAssistant,
         ret = await device.async_update()
         if not ret:
             raise ConfigEntryNotReady("Unable to retrieve initial Koolnova data")
+        _LOGGER.info(
+            "Koolnova %s configured in %s mode with Modbus table version %s",
+            device.name,
+            entry.data["Mode"],
+            device.table_version,
+        )
         # record each area in device
         _LOGGER.debug("Koolnova areas: %s", entry.data['areas'])
         for area in entry.data['areas']:

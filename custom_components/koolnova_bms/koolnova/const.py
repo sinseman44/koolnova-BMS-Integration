@@ -37,7 +37,8 @@ TABLE_VERSION_OPTIONS = (
 
 # Le registre logique 40073 est un bon candidat pour différencier les tables :
 # - en v1.0, c'est la programmation du débit de la machine AC1, avec valeurs 1 à 4 ;
-# - en v2.0, c'est le modèle et la version logiciel de l'unité de contrôle.
+# - en v2.0, c'est le modèle et la version logiciel de l'unité de contrôle,
+#   par exemple 0x4829.
 REG_V2_MODEL_VERSION = 72
 V1_FLOW_STATE_VALUES = (1, 2, 3, 4)
 

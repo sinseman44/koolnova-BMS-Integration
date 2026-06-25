@@ -4,7 +4,6 @@ import logging as log
 
 import asyncio
 
-from pymodbus import pymodbus_apply_logging_config
 from pymodbus.client import AsyncModbusSerialClient as ModbusClient
 from pymodbus.client import AsyncModbusTcpClient as ModbusTcpClient
 from pymodbus.pdu import ExceptionResponse
@@ -12,6 +11,18 @@ from pymodbus.pdu import ExceptionResponse
 from . import const
 
 _LOGGER = log.getLogger(__name__)
+
+_DEBUG_LOGGERS = (
+    "custom_components.koolnova_bms",
+    "pymodbus",
+    "pymodbus.logging",
+)
+
+def _set_debug_logging(enabled:bool) -> None:
+    """Set debug logger levels without changing Home Assistant handlers."""
+    level = log.DEBUG if enabled else log.INFO
+    for logger_name in _DEBUG_LOGGERS:
+        log.getLogger(logger_name).setLevel(level)
 
 class Operations:
     ''' koolnova BMS Modbus operations class '''
@@ -72,8 +83,7 @@ class Operations:
                                             timeout=self._timeout)
         else:
             raise InitialisationError('Mode ({}) not defined'.format(self._mode))
-        if self._debug:
-            pymodbus_apply_logging_config("DEBUG")
+        _set_debug_logging(self._debug)
 
     async def __async_read_register(self, reg:int) -> (int, bool):
         ''' Read one holding register (code 0x03) '''
@@ -201,12 +211,9 @@ class Operations:
             _LOGGER.error("Unable to read Koolnova table version candidate register")
             return False, const.TABLE_VERSION_DEFAULT
 
-        msb = (reg >> 8) & 0xFF
-        lsb = reg & 0xFF
-
         if reg in const.V1_FLOW_STATE_VALUES:
             table_version = const.TABLE_VERSION_V1
-        elif msb == 0x00 and lsb != 0:
+        elif reg != 0:
             table_version = const.TABLE_VERSION_V2
         else:
             _LOGGER.warning(
@@ -1084,10 +1091,7 @@ class Operations:
 
     async def async_set_debug(self, val:bool) -> bool:
         ''' Set/Reset Debug Mode '''
-        if val:
-            pymodbus_apply_logging_config("DEBUG")
-        else:
-            pymodbus_apply_logging_config("INFO")
+        _set_debug_logging(val)
         return True
 
     async def async_system_status(self) -> (bool, const.SysState):
