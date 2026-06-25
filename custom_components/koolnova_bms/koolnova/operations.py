@@ -1001,7 +1001,7 @@ class Operations:
 
         regs = list(regs)
         regs.append(reg_ac4)
-        return True, regs
+        return True, [reg / 2 for reg in regs]
 
     async def async_v2_efficiency_ac3_speed(self) -> (bool, int):
         ''' read 40126: MSB EFI and LSB AC3 speed '''
