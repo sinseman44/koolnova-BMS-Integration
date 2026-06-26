@@ -603,8 +603,11 @@ class Koolnova:
             Coordinator data dictionary when every required Modbus read succeeds;
             None when any required block cannot be refreshed.
         """
-        # Refresh registered zone values first; climate entities consume these.
-        _ret, _vals = await self._client.async_areas_registered()
+        # Refresh only Home Assistant configured zones; they cannot appear by themselves.
+        configured_zone_ids = [_area.id_zone for _area in self._areas]
+        _ret, _vals = await self._client.async_areas_registered(
+            zone_ids=configured_zone_ids
+        )
         if not _ret:
             _LOGGER.error("Error retreiving areas values")
             return None

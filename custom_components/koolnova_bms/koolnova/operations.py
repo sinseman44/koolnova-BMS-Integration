@@ -827,6 +827,35 @@ class Operations:
             "real_temp": regs[offset + const.REG_TEMP_REAL] / 2,
         }
 
+    @staticmethod
+    def __zone_id_ranges(zone_ids:list[int]) -> list[tuple[int, int]]:
+        """Group one-based zone ids into contiguous ranges.
+
+        Args:
+            zone_ids: One-based zone ids to read.
+
+        Returns:
+            List of inclusive start/end ranges.
+        """
+        ranges = []
+        sorted_zone_ids = sorted(set(zone_ids))
+        if not sorted_zone_ids:
+            return ranges
+
+        range_start = sorted_zone_ids[0]
+        previous_zone_id = range_start
+        for zone_id in sorted_zone_ids[1:]:
+            if zone_id == previous_zone_id + 1:
+                previous_zone_id = zone_id
+                continue
+
+            ranges.append((range_start, previous_zone_id))
+            range_start = zone_id
+            previous_zone_id = zone_id
+
+        ranges.append((range_start, previous_zone_id))
+        return ranges
+
     async def async_v2_model_version(self) -> (bool, int):
         """Read 40073: control unit model and software version.
 
@@ -1609,7 +1638,7 @@ class Operations:
         zones_lst = []
         for area_idx in range(const.NB_ZONE_MAX):
             offset = area_idx * const.NUM_REG_PER_ZONE
-            zone_dict = Operations.__decode_area_registers(regs, offset)
+            zone_dict = self.__decode_area_registers(regs, offset)
             if zone_dict is None:
                 continue
             zone_dict["id"] = area_idx + 1
@@ -1634,32 +1663,53 @@ class Operations:
                                                 count = const.NUM_REG_PER_ZONE)
         if not ret:
             raise ReadRegistersError("Error reading holding register")
-        zone_dict = Operations.__decode_area_registers(regs)
+        zone_dict = self.__decode_area_registers(regs)
         if zone_dict is None:
             _LOGGER.warning("Zone with id: {} is not registered".format(zone_id))
             return False, {}
 
         return True, zone_dict
 
-    async def async_areas_registered(self) -> (bool, dict):
-        """Get values for all registered areas from one 16-zone block read.
+    async def async_areas_registered(self,
+                                    zone_ids:list[int] | None = None,
+                                    ) -> (bool, dict):
+        """Get values for registered areas from zone register block reads.
+
+        Args:
+            zone_ids: Optional one-based zone ids to refresh. When omitted, all
+                16 possible zones are scanned. Contiguous requested zones are
+                grouped into the same Modbus read.
 
         Returns:
             Tuple of success flag and dictionary keyed by one-based zone id.
         """
         areas:dict = {}
-        # Read all 16 possible zones once, then keep only registered zones.
-        regs, ret = await self.__async_read_registers(start_reg = const.REG_START_ZONE,
-                                                count = const.NUM_REG_PER_ZONE * const.NB_ZONE_MAX)
-        if not ret:
-            raise ReadRegistersError("Error reading holding register")
-        for area_idx in range(const.NB_ZONE_MAX):
-            offset = area_idx * const.NUM_REG_PER_ZONE
-            area = Operations.__decode_area_registers(regs, offset)
-            if area is None:
-                continue
+        if zone_ids is None:
+            zone_ids = list(range(1, const.NB_ZONE_MAX + 1))
 
-            areas[area_idx + 1] = area
+        for zone_id in zone_ids:
+            if zone_id < 1 or zone_id > const.NB_ZONE_MAX:
+                raise ZoneIdError('Zone Id must be between 1 to {}'.format(const.NB_ZONE_MAX))
+
+        for start_zone_id, end_zone_id in self.__zone_id_ranges(zone_ids):
+            start_reg = const.REG_START_ZONE + (
+                const.NUM_REG_PER_ZONE * (start_zone_id - 1)
+            )
+            count = const.NUM_REG_PER_ZONE * (end_zone_id - start_zone_id + 1)
+            regs, ret = await self.__async_read_registers(
+                start_reg = start_reg,
+                count = count,
+            )
+            if not ret:
+                raise ReadRegistersError("Error reading holding register")
+
+            for zone_id in range(start_zone_id, end_zone_id + 1):
+                offset = const.NUM_REG_PER_ZONE * (zone_id - start_zone_id)
+                area = self.__decode_area_registers(regs, offset)
+                if area is None:
+                    continue
+
+                areas[zone_id] = area
         return True, areas
 
     async def async_set_debug(self, val:bool) -> bool:
