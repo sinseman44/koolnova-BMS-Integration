@@ -822,10 +822,36 @@ class Operations:
             "state": const.ZoneState(lock_reg & 0b01),
             "register": register,
             "fan": const.ZoneFanMode((state_and_flow & 0xF0) >> 4),
-            "clim": const.ZoneClimMode(state_and_flow & 0x0F),
+            "clim": Operations.__decode_zone_clim_mode(state_and_flow),
             "order_temp": regs[offset + const.REG_TEMP_ORDER] / 2,
             "real_temp": regs[offset + const.REG_TEMP_REAL] / 2,
         }
+
+    @staticmethod
+    def __decode_zone_clim_mode(state_and_flow:int) -> const.ZoneClimMode:
+        """Decode the low nibble of a zone state/flow register.
+
+        Supplier tables document values 1, 2 and 4..6 only. Real controllers
+        may temporarily report other values, for example 3 after setting the
+        controller-wide mode to dehumidification. Keep the coordinator alive and
+        let global mode drive HA HVAC state for unsupported zone-mode values.
+
+        Args:
+            state_and_flow: Raw zone state/flow register value.
+
+        Returns:
+            Decoded zone climate mode, or OFF when the raw mode is unsupported.
+        """
+        raw_mode = state_and_flow & 0x0F
+        try:
+            return const.ZoneClimMode(raw_mode)
+        except ValueError:
+            _LOGGER.debug(
+                "Unsupported Koolnova zone climate mode value %s in register value 0x%02x; using OFF fallback",
+                raw_mode,
+                state_and_flow,
+            )
+            return const.ZoneClimMode.OFF
 
     @staticmethod
     def __zone_id_ranges(zone_ids:list[int]) -> list[tuple[int, int]]:
@@ -2376,7 +2402,7 @@ class Operations:
         if not ret:
             _LOGGER.error('Error retreive area fan and climate values')
             reg = 0
-        return ret, const.ZoneFanMode((reg & 0xF0) >> 4), const.ZoneClimMode(reg & 0x0F)
+        return ret, const.ZoneFanMode((reg & 0xF0) >> 4), self.__decode_zone_clim_mode(reg)
 
     async def async_area_state_and_register(self,
                                             id_zone:int = 0,

@@ -129,6 +129,17 @@ GLOBAL_MODE_NAMES = {
     6: "radiant floor heating + heating",
 }
 
+ZONE_CLIMATE_MODE_NAMES = {
+    0: "off",
+    1: "cooling",
+    2: "heating",
+    4: "radiant floor heating",
+    5: "radiant floor cooling + cooling",
+    6: "radiant floor heating + heating",
+}
+
+VALID_ZONE_CLIMATE_MODES = tuple(ZONE_CLIMATE_MODE_NAMES)
+
 FAN_MODE_NAMES = {
     0: "off",
     1: "low",
@@ -278,7 +289,7 @@ class KoolnovaSimulatorContext(ModbusSimulatorContext):
                                        function_code: int,
                                        ) -> None:
         """Set all registered zone climate nibbles from the global mode."""
-        normalized_mode = int(mode) & ZONE_MODE_MASK
+        normalized_mode = self._zone_mode_from_global_mode(mode)
         for zone_index in range(ZONE_COUNT):
             lock_address = (zone_index * ZONE_REGISTER_COUNT) + ZONE_LOCK_REGISTER_OFFSET
             if not self._read_holding_register(lock_address) & ZONE_REGISTERED_BIT:
@@ -287,6 +298,23 @@ class KoolnovaSimulatorContext(ModbusSimulatorContext):
             current = self._read_holding_register(mode_address)
             updated = (current & ZONE_FAN_MASK) | normalized_mode
             self._write_holding_register(mode_address, updated, function_code)
+
+    @staticmethod
+    def _zone_mode_from_global_mode(mode: int) -> int:
+        """Return a documented zone climate mode for a global HVAC mode.
+
+        Args:
+            mode: Raw global HVAC mode.
+
+        Returns:
+            Zone climate mode safe for the low nibble of 40002-style registers.
+        """
+        normalized_mode = int(mode) & ZONE_MODE_MASK
+        if normalized_mode in VALID_ZONE_CLIMATE_MODES:
+            return normalized_mode
+        if normalized_mode == 3:
+            return 1
+        return 0
 
     def _sync_global_state_from_zones(self, function_code: int) -> None:
         """Set global system state according to registered zone states."""
@@ -661,7 +689,7 @@ class RegisterTui:
             fan = (value & ZONE_FAN_MASK) >> 4
             return ["Zone Z{} mode: {} ({})  fan code: {}".format(
                 zone_id,
-                GLOBAL_MODE_NAMES.get(mode, "unknown"),
+                ZONE_CLIMATE_MODE_NAMES.get(mode, "unknown"),
                 mode,
                 fan,
             )]
@@ -786,8 +814,11 @@ class RegisterTui:
                 return
             updated = (value & ~ZONE_STATE_ON) | (ZONE_STATE_ON if state else ZONE_STATE_OFF)
         elif field == 1:
-            mode = self._prompt_optional_int(screen, "Zone mode code 0..6: ")
+            mode = self._prompt_optional_int(screen, "Zone mode code 0,1,2,4,5,6: ")
             if mode is None:
+                return
+            if mode not in VALID_ZONE_CLIMATE_MODES:
+                self._message = "Zone mode must be one of 0, 1, 2, 4, 5, 6."
                 return
             fan = self._prompt_optional_int(screen, "Fan code 0..15 blank=keep: ", allow_blank=True)
             current_fan = (value & ZONE_FAN_MASK) >> 4
@@ -1141,7 +1172,7 @@ class FriendlyRegisterTui:
             ))
             fields.append(self._nibble_field(
                 "zones", "Z{} HVAC mode".format(zone_id), mode_addr, 0, ZONE_MODE_MASK,
-                GLOBAL_MODE_NAMES,
+                ZONE_CLIMATE_MODE_NAMES,
             ))
             fields.append(self._nibble_field(
                 "zones", "Z{} fan mode".format(zone_id), mode_addr, 4, 0x0F,
