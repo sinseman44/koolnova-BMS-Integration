@@ -1,7 +1,6 @@
 """ local API to manage system, engines and areas """ 
 
 import logging as log
-import asyncio
 import warnings
 
 from homeassistant.helpers.entity import DeviceInfo
@@ -308,103 +307,75 @@ class Koolnova:
         return self._system_registers
 
     async def _async_update_system_registers(self) -> bool:
-        """Update raw common system register values with unit reads."""
-        register_reads = (
-            ("communication_config", self._client.async_communication_config),
-            ("modbus_address", self._client.async_modbus_address),
-            ("infrared_receiver_id", self._client.async_clim_id),
-        )
+        """Update common system values from one Operations snapshot.
 
-        values = {}
-        for key, read_register in register_reads:
-            ret, value = await read_register()
-            if not ret:
-                _LOGGER.error("Error retreiving Koolnova system register %s", key)
-                return False
-            values[key] = value
-        self._system_registers = values
+        The snapshot is used for both V1 and V2 so global mode, system state and
+        system diagnostic registers stay on the same refresh path for both
+        table versions.
+
+        Returns:
+            True when common system values were refreshed, False otherwise.
+        """
+        ret, values = await self._client.async_system_snapshot()
+        if not ret:
+            _LOGGER.error("Error retreiving Koolnova system snapshot")
+            return False
+
+        self._global_mode = values["global_mode"]
+        self._efficiency = values["efficiency"]
+        self._sys_state = values["system_status"]
+        self._system_registers = {
+            "communication_config": values["communication_config"],
+            "modbus_address": values["modbus_address"],
+            "infrared_receiver_id": values["infrared_receiver_id"],
+        }
         return True
 
     async def _async_update_v2_registers(self) -> bool:
-        """Update raw Koolnova 2.0 advanced register values with unit reads."""
+        """Update raw Koolnova 2.0 advanced register values.
+
+        These values back the V2-only sensors, numbers, switches and selects.
+        Operations handles the Modbus block boundaries, including the 40124 gap.
+
+        Returns:
+            True when the v2 snapshot was refreshed or not needed, False on
+            read failure.
+        """
         if self._table_version != const.TABLE_VERSION_V2:
             self._v2_registers = {}
             return True
 
-        # Keep individually named registers explicit for easier Modbus debugging.
-        register_reads = (
-            ("40073_model_version", self._client.async_v2_model_version),
-            ("40074_parameters", self._client.async_v2_parameters),
-            ("40075_active_modes", self._client.async_v2_active_modes),
-            ("40076_temperature_limits", self._client.async_v2_temperature_limits),
-            ("40077_auto_changeover_humidity", self._client.async_v2_auto_changeover_humidity),
-            ("40078_system_time", self._client.async_v2_system_time),
-            ("40079_external_inputs", self._client.async_v2_external_inputs),
-            ("40080_opening_angle_z1_z8", self._client.async_v2_opening_angle_z1_z8),
-            ("40081_opening_angle_z9_z16", self._client.async_v2_opening_angle_z9_z16),
-            ("40082_floor_water_temperature", self._client.async_v2_floor_water_temperature),
-            ("40083_outdoor_temperature", self._client.async_v2_outdoor_temperature),
-            ("40084_aux_temperature", self._client.async_v2_aux_temperature),
-            ("40085_valve_mask", self._client.async_v2_valve_mask),
-            ("40086_pump_delay_valve_offset", self._client.async_v2_pump_delay_valve_offset),
-            ("40087_immersion_heater", self._client.async_v2_immersion_heater),
-            ("40088_thermostat_block", self._client.async_v2_thermostat_block),
-            ("40089_auto_mode", self._client.async_v2_auto_mode),
-            ("40090_mixing_valve_ambient_temperatures", self._client.async_v2_mixing_valve_ambient_temperatures),
-            ("40091_mixing_valve_water_temperatures", self._client.async_v2_mixing_valve_water_temperatures),
-            ("40092_mixing_valve_mode_info", self._client.async_v2_mixing_valve_mode_info),
-            ("40107_reserved", self._client.async_v2_reserved_40107),
-            ("40111_radiant_floor_demand_count", self._client.async_v2_radiant_floor_demand_count),
-            ("40112_ac3_air_demand_count", self._client.async_v2_ac3_air_demand_count),
-            ("40126_efficiency_ac3_speed", self._client.async_v2_efficiency_ac3_speed),
-        )
-
-        values = {}
-        # Read non-contiguous and standalone registers one by one.
-        for key, read_register in register_reads:
-            ret, value = await read_register()
-            if not ret:
-                _LOGGER.error("Error retreiving Koolnova v2 register %s", key)
-                return False
-            values[key] = value
-
-        # Read contiguous AC1-AC4 register groups as small blocks.
-        ret, connected_volumes = await self._client.async_v2_connected_volumes()
+        ret, values = await self._client.async_v2_registers_snapshot()
         if not ret:
+            _LOGGER.error("Error retreiving Koolnova v2 register snapshot")
             return False
-        for idx, value in enumerate(connected_volumes):
-            engine_id = idx + 1
-            reg = const.REG_V2_START_CONNECTED_VOLUME + (engine_id - 1)
-            values["{}_connected_volume_ac{}".format(
-                reg + const.MODBUS_LOGICAL_ADDRESS_BASE,
-                engine_id,
-            )] = value
-
-        ret, active_volumes = await self._client.async_v2_active_volumes()
-        if not ret:
-            return False
-        for idx, value in enumerate(active_volumes):
-            engine_id = idx + 1
-            reg = const.REG_V2_START_ACTIVE_VOLUME + (engine_id - 1)
-            values["{}_active_volume_ac{}".format(
-                reg + const.MODBUS_LOGICAL_ADDRESS_BASE,
-                engine_id,
-            )] = value
-
-        # The official table skips 40124, so AC4 is mapped explicitly to 40125.
-        ret, requested_temp_avgs = await self._client.async_v2_requested_temp_avgs()
-        if not ret:
-            return False
-        for idx, value in enumerate(requested_temp_avgs):
-            engine_id = idx + 1
-            reg = const.REG_V2_START_REQUESTED_TEMP_AVG + (engine_id - 1)
-            if engine_id == 4:
-                reg += 1
-            values["{}_requested_temp_avg_ac{}".format(
-                reg + const.MODBUS_LOGICAL_ADDRESS_BASE,
-                engine_id,
-            )] = value
         self._v2_registers = values
+        return True
+
+    async def _async_update_engines(self) -> bool:
+        """Update AC1-AC4 engine values from one Operations snapshot.
+
+        This replaces twelve per-engine reads while preserving the existing
+        Engine objects consumed by Home Assistant entities.
+
+        Returns:
+            True when all engine values were refreshed, False otherwise.
+        """
+        ret, engine_values = await self._client.async_engines_snapshot()
+        if not ret:
+            _LOGGER.error("Error retreiving Koolnova engines snapshot")
+            return False
+
+        if len(self._engines) != const.NUM_OF_ENGINES:
+            self._engines = [
+                Engine(engine_id=idx)
+                for idx in range(1, const.NUM_OF_ENGINES + 1)
+            ]
+
+        for idx, values in enumerate(engine_values):
+            self._engines[idx].throughput = values["throughput"]
+            self._engines[idx].state = values["state"]
+            self._engines[idx].order_temp = values["order_temp"]
         return True
 
     async def _async_write_v2_register(self,
@@ -482,39 +453,10 @@ class Koolnova:
 
     async def async_update(self) -> bool:
         ''' update values from modbus '''
-        _LOGGER.debug("Retreive system status ...")
-        ret, self._sys_state = await self._client.async_system_status()
-        if not ret:
-            _LOGGER.error("Error retreiving system status")
-            self._sys_state = const.SysState.SYS_STATE_OFF
-            return False
-
-        _LOGGER.debug("Retreive global mode ...")
-        ret, self._global_mode = await self._client.async_global_mode()
-        if not ret:
-            _LOGGER.error("Error retreiving global mode")
-            self._global_mode = const.GlobalMode.COLD
-            return False
-
-        _LOGGER.debug("Retreive efficiency ...")
-        ret, self._efficiency = await self._client.async_efficiency()
-        if not ret:
-            _LOGGER.error("Error retreiving efficiency")
-            self._efficiency = const.Efficiency.LOWER_EFF
-            return False
-        
-        await asyncio.sleep(0.1)
-
         _LOGGER.debug("Retreive engines ...")
-        engines = []
-        for idx in range(1, const.NUM_OF_ENGINES + 1):
-            engine = Engine(engine_id = idx)
-            ret, engine.throughput = await self._client.async_engine_throughput(engine_id = idx)
-            ret, engine.state = await self._client.async_engine_state(engine_id = idx)
-            ret, engine.order_temp = await self._client.async_engine_order_temp(engine_id = idx)
-            engines.append(engine)
-            await asyncio.sleep(0.1)
-        self._engines = engines
+        ret = await self._async_update_engines()
+        if not ret:
+            return False
 
         _LOGGER.debug("Retreive common system registers ...")
         ret = await self._async_update_system_registers()
@@ -642,8 +584,26 @@ class Koolnova:
         return True, self._areas[idx]
 
     async def async_update_all_areas(self) -> list:
-        """ update all areas registered and all engines values """
-        ##### Areas
+        """Refresh the full device snapshot used by the Home Assistant coordinator.
+
+        This is the central polling entry point used by `KoolnovaCoordinator`.
+        It updates the in-memory Area and Engine objects in place, refreshes the
+        common global/system values for both V1 and V2 tables, and adds the V2
+        advanced register snapshot when the configured table version supports it.
+
+        The returned dictionary is passed directly to coordinator entities, so
+        its keys are part of the integration's internal data contract:
+        - `areas`: registered zone objects consumed by climate entities.
+        - `engines`: AC1-AC4 engine objects consumed by diagnostic entities.
+        - `glob`, `eff`, `sys`: current global mode, efficiency and HVAC state.
+        - `system_registers`: common Modbus diagnostic registers.
+        - `v2_registers`: V2-only decoded register snapshot, or an empty dict for V1.
+
+        Returns:
+            Coordinator data dictionary when every required Modbus read succeeds;
+            None when any required block cannot be refreshed.
+        """
+        # Refresh registered zone values first; climate entities consume these.
         _ret, _vals = await self._client.async_areas_registered()
         if not _ret:
             _LOGGER.error("Error retreiving areas values")
@@ -660,35 +620,18 @@ class Koolnova:
                         self._areas[_idx].real_temp = v['real_temp']
                         self._areas[_idx].order_temp = v['order_temp']
 
-        ##### Engines
-        for _idx in range(1, const.NUM_OF_ENGINES + 1):
-            ret, self._engines[_idx - 1].throughput = await self._client.async_engine_throughput(engine_id = _idx)
-            ret, self._engines[_idx - 1].state = await self._client.async_engine_state(engine_id = _idx)
-            ret, self._engines[_idx - 1].order_temp = await self._client.async_engine_order_temp(engine_id = _idx)
-
-        ##### Global mode
-        ret, self._global_mode = await self._client.async_global_mode()
+        # Refresh AC1-AC4 engine values used by diagnostic entities.
+        ret = await self._async_update_engines()
         if not ret:
-            _LOGGER.error("Error retreiving global mode")
-            self._global_mode = const.GlobalMode.COLD
+            return None
 
-        ##### Efficiency
-        ret, self._efficiency = await self._client.async_efficiency()
-        if not ret:
-            _LOGGER.error("Error retreiving efficiency")
-            self._efficiency = const.Efficiency.LOWER_EFF
-
-        ##### Sys state
-        ret, self._sys_state = await self._client.async_system_status()
-        if not ret:
-            _LOGGER.error("Error retreiving system status")
-            self._sys_state = const.SysState.SYS_STATE_OFF
-
+        # Refresh common global/system registers shared by V1 and V2 tables.
         ret = await self._async_update_system_registers()
         if not ret:
             return None
 
         if self._table_version == const.TABLE_VERSION_V2:
+            # Refresh V2-only advanced registers used by V2 entities.
             ret = await self._async_update_v2_registers()
             if not ret:
                 return None
