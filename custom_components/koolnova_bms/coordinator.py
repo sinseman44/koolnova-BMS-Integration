@@ -10,6 +10,7 @@ from homeassistant.helpers.update_coordinator import (
 )
 
 from .const import (
+    DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
 )
 
@@ -23,6 +24,7 @@ class KoolnovaCoordinator(DataUpdateCoordinator):
     def __init__(self,
                     hass: HomeAssistant, 
                     device: Koolnova,
+                    update_interval_seconds:int = DEFAULT_UPDATE_INTERVAL,
                 ) -> None:
         """ Class constructor """
         self._device = device
@@ -33,7 +35,7 @@ class KoolnovaCoordinator(DataUpdateCoordinator):
             name=DOMAIN,
             update_method=self._async_update_data,
             # Polling interval. Will only be polled if there are subscribers.
-            update_interval=timedelta(seconds=30),
+            update_interval=timedelta(seconds=update_interval_seconds),
         )
 
     async def _async_update_data(self) -> dict:

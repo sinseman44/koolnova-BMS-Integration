@@ -9,7 +9,12 @@ from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import AbortFlow, FlowResult
 from homeassistant.const import CONF_BASE
-from .const import DOMAIN, CONF_NAME
+from .const import (
+    CONF_NAME,
+    CONF_UPDATE_INTERVAL,
+    DEFAULT_UPDATE_INTERVAL,
+    DOMAIN,
+)
 
 from .koolnova.operations import Operations
 from .koolnova.const import (
@@ -162,6 +167,10 @@ class KoolnovaConfigFlow(ConfigFlow, domain=DOMAIN):
                 vol.Required("Reconnect_delay_min", default=DEFAULT_TCP_RECO_DELAY): vol.Coerce(float),
                 vol.Required("Reconnect_delay_max", default=DEFAULT_TCP_RECO_DELAY_MAX): vol.Coerce(float),
                 vol.Required("Timeout", default=5): vol.Coerce(int),
+                vol.Required(CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL): vol.All(
+                    vol.Coerce(int),
+                    vol.Range(min=5),
+                ),
                 vol.Optional("Debug", default=False): cv.boolean
             }
         )
@@ -217,6 +226,10 @@ class KoolnovaConfigFlow(ConfigFlow, domain=DOMAIN):
                 vol.Required("Parity", default="EVEN"): vol.In(["EVEN", "NONE"]),
                 vol.Required("Stopbits", default=DEFAULT_STOPBITS): vol.Coerce(int),
                 vol.Required("Timeout", default=5): vol.Coerce(int),
+                vol.Required(CONF_UPDATE_INTERVAL, default=DEFAULT_UPDATE_INTERVAL): vol.All(
+                    vol.Coerce(int),
+                    vol.Range(min=5),
+                ),
                 vol.Optional("Debug", default=False): cv.boolean
             }
         )
@@ -445,32 +458,40 @@ class KoolnovaOptionsFlow(OptionsFlow):
     async def async_step_init(self,
                               user_input: dict | None = None) -> FlowResult:
         """Manage Koolnova options."""
-        if self._config_entry.data["Mode"] != "Modbus RTU":
-            return self.async_abort(reason="not_supported")
-
         config = {
             **self._config_entry.data,
             **self._config_entry.options,
         }
         errors = {}
-        options_form = vol.Schema(
-            {
+        options_fields = {
+            vol.Required(
+                CONF_UPDATE_INTERVAL,
+                default=config.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
+            ): vol.All(
+                vol.Coerce(int),
+                vol.Range(min=5),
+            ),
+        }
+        if self._config_entry.data["Mode"] == "Modbus RTU":
+            options_fields = {
                 vol.Required("Device", default=config["Device"]): vol.Coerce(str),
+                **options_fields,
             }
-        )
+        options_form = vol.Schema(options_fields)
 
         if user_input:
             updated_config = {**config, **user_input}
-            self._disconnect_runtime_device()
-            self._conn = _create_conn_from_config(updated_config)
             try:
-                await self._conn.async_connect()
-                if not self._conn.connected():
-                    raise CannotConnectError(reason="Client Modbus RTU not connected")
-                ret = await self._conn.async_test_communication()
-                if not ret:
-                    raise CannotConnectError(reason="Communication error")
-                self._disconnect_conn()
+                if self._config_entry.data["Mode"] == "Modbus RTU":
+                    self._disconnect_runtime_device()
+                    self._conn = _create_conn_from_config(updated_config)
+                    await self._conn.async_connect()
+                    if not self._conn.connected():
+                        raise CannotConnectError(reason="Client Modbus RTU not connected")
+                    ret = await self._conn.async_test_communication()
+                    if not ret:
+                        raise CannotConnectError(reason="Communication error")
+                    self._disconnect_conn()
                 return self.async_create_entry(
                     title="",
                     data={

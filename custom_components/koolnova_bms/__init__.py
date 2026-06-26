@@ -12,6 +12,8 @@ import homeassistant.helpers.config_validation as cv
 from .koolnova.device import Koolnova
 
 from .const import (
+    CONF_UPDATE_INTERVAL,
+    DEFAULT_UPDATE_INTERVAL,
     DOMAIN,
     PLATFORMS,
     SERVICE_FIELD_ANGLE,
@@ -87,6 +89,11 @@ def _build_device_from_entry(entry: ConfigEntry) -> Koolnova:
                         table_version=table_version)
 
     raise ConfigEntryNotReady(f"Unsupported Koolnova Modbus mode: {mode}")
+
+def _update_interval_from_entry(entry: ConfigEntry) -> int:
+    """Return the configured coordinator update interval in seconds."""
+    config = {**entry.data, **entry.options}
+    return int(config.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL))
 
 def _disconnect_device(device: Koolnova | None) -> None:
     """Disconnect a Koolnova device if it has an active Modbus client."""
@@ -253,7 +260,11 @@ async def async_setup_entry(hass: HomeAssistant,
                 raise ConfigEntryNotReady(
                     f"Unable to register Koolnova area {area['Area_id']}"
                 )
-        coordinator = KoolnovaCoordinator(hass, device)
+        coordinator = KoolnovaCoordinator(
+            hass,
+            device,
+            update_interval_seconds=_update_interval_from_entry(entry),
+        )
         # Ensure coordinator.data is populated before platform entities are created.
         await coordinator.async_config_entry_first_refresh()
         hass.data[DOMAIN][entry.entry_id] = {

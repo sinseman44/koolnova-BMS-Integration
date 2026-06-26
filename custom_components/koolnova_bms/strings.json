@@ -22,6 +22,7 @@
                     "Parity": "Parity",
                     "Stopbits": "Stopbits",
                     "Timeout": "Timeout",
+                    "Update_interval": "Update interval in seconds",
                     "Debug": "Debug"
                 }
             },
@@ -37,6 +38,7 @@
                     "Reconnect_delay_min": "Reconnexion delay minimum",
                     "Reconnect_delay_max": "Reconnexion delay maximum",
                     "Timeout": "Timeout",
+                    "Update_interval": "Update interval in seconds",
                     "Debug": "Debug"
                 }
             },
@@ -71,17 +73,15 @@
         "step": {
             "init": {
                 "title": "Koolnova BMS options",
-                "description": "Update the Modbus RTU connection settings.",
+                "description": "Update the polling interval and Modbus RTU connection settings when available.",
                 "data": {
-                    "Device": "Device"
+                    "Device": "Device",
+                    "Update_interval": "Update interval in seconds"
                 }
             }
         },
         "error": {
             "cannot_connect": "Cannot connected to Koolnova system"
-        },
-        "abort": {
-            "not_supported": "Options are only available for Modbus RTU entries"
         }
     }
 }

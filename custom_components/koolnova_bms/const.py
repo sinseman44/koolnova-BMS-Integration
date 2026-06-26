@@ -38,6 +38,9 @@ CONF_DEVICE_ID = "device_id"
 
 DEVICE_MANUFACTURER = "koolnova"
 
+CONF_UPDATE_INTERVAL = "Update_interval"
+DEFAULT_UPDATE_INTERVAL = 30
+
 #MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=60)
 
 GLOBAL_MODE_POS_1 = "cold"

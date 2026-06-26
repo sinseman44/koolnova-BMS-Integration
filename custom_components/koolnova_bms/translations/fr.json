@@ -22,6 +22,7 @@
                     "Parity": "Parité",
                     "Stopbits": "Nombre de bits de stop",
                     "Timeout": "Délai d'attente",
+                    "Update_interval": "Intervalle de mise à jour en secondes",
                     "Debug": "Deboggage"
                 }
             },
@@ -37,6 +38,7 @@
                     "Reconnect_delay_min": "Temps minimum de reconnexion",
                     "Reconnect_delay_max": "Temps maximum de reconnexion",
                     "Timeout": "Délai d'attente",
+                    "Update_interval": "Intervalle de mise à jour en secondes",
                     "Debug": "Deboggage"
                 }
             },
@@ -71,17 +73,15 @@
         "step": {
             "init": {
                 "title": "Options Koolnova BMS",
-                "description": "Modifier les paramètres de connexion Modbus RTU.",
+                "description": "Modifier l'intervalle de polling et les paramètres de connexion Modbus RTU lorsque disponibles.",
                 "data": {
-                    "Device": "Appareil de communication RS485 Modbus"
+                    "Device": "Appareil de communication RS485 Modbus",
+                    "Update_interval": "Intervalle de mise à jour en secondes"
                 }
             }
         },
         "error": {
             "cannot_connect": "Impossible de se connecter au système Koolnova"
-        },
-        "abort": {
-            "not_supported": "Les options sont disponibles uniquement pour les entrées Modbus RTU"
         }
     }
 }
